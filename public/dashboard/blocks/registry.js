@@ -1,0 +1,18 @@
+// ┌───────────────────────────────────────────────────────────────┐
+// │  BLOCK REGISTRY — the only file you edit to add a new block.   │
+// │  1. Copy _template.js to e.g. calendar.js and change it.        │
+// │  2. Import it below and add it to the list.                     │
+// │  The list order is the default layout; you can rearrange       │
+// │  on the dashboard itself with Menu → Edit layout.              │
+// └───────────────────────────────────────────────────────────────┘
+import welcome from "./welcome.js";
+import links from "./links.js";
+import notes from "./notes.js";
+import starter from "./starter.js";
+
+export default [
+  welcome,
+  links,
+  notes,
+  starter,
+];

@@ -1,0 +1,11 @@
+name = "neal-dashboard"
+pages_build_output_dir = "public"
+compatibility_date = "2025-01-01"
+
+[vars]
+ROTATE_DAYS = "30"     # days between forced changes
+ROTATE_MFA = "true"    # "true" = new authenticator entry every cycle too; "false" = password only
+
+[[kv_namespaces]]
+binding = "DASH_KV"
+id = "PASTE_YOUR_KV_NAMESPACE_ID"
