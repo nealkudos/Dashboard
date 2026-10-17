@@ -1,5 +1,5 @@
 // Trading page: everything from the signal-copier bot, via /api/trading (signed-in only).
-import { fetchTrading, esc, money, cls, when, fmtT, inPeriod, summary, curveSVG } from "./lib.js";
+import { fetchTrading, fetchLive, esc, money, cls, when, fmtT, inPeriod, summary, curveSVG } from "./lib.js";
 
 const $ = (id) => document.getElementById(id);
 let days = 7, data = null, filter = "All", shown = 15;
@@ -51,7 +51,6 @@ function render() {
   $("curve").innerHTML = curveSVG(closed);
   drawDaily(closed);
   drawSources(closed);
-  drawOpen();
   drawTrades(closed);
   $("updated").textContent = "Updated " + new Date(data.updated).toLocaleTimeString("en-GB") + " · refreshes every minute";
 }
@@ -87,15 +86,6 @@ function drawSources(closed) {
       <div class="pa">${money(r.avg)} / signal</div></div>`).join("");
 }
 
-function drawOpen() {
-  const o = data.open, pend = data.pending ? `${data.pending} pending order${data.pending > 1 ? "s" : ""}` : "";
-  if (!o.length) { $("open").innerHTML = `<div class="empty">No open trades${pend ? " · " + pend : ""}.</div>`; return; }
-  $("open").innerHTML = o.map((t) => `<div class="trade"><div>
-      <div class="t1"><span class="side-${t.side}">${t.side}</span> ${t.lots} lots <span class="tag">${esc(t.source)}</span></div>
-      <div class="t2">${t.entry} → ${t.price} · SL ${t.sl ?? "–"} · TP ${t.tp ?? "–"} · ${fmtT(t.opened)}</div></div>
-      <div class="p ${cls(t.pnl)}">${money(t.pnl)}</div></div>`).join("") + (pend ? `<div class="empty">${pend}</div>` : "");
-}
-
 function drawTrades(closed) {
   const sources = ["All", ...new Set(closed.map((t) => t.source))];
   if (!sources.includes(filter)) filter = "All";
@@ -112,5 +102,81 @@ function drawTrades(closed) {
   if (m) m.onclick = () => { shown += 30; drawTrades(closed); };
 }
 
+// ---------- Live panel: price + open trades every 5 seconds while the page is on screen ----------
+let lastBid = null, lastOk = 0, liveTimer = null;
+const pnlSeen = {};
+
+function pct(t) {
+  // 0 = at the stop loss, 1 = at the target, measured along the trade's direction
+  if (t.sl == null || t.tp == null || t.sl === t.tp) return null;
+  const v = t.side === "BUY" ? (t.price - t.sl) / (t.tp - t.sl) : (t.sl - t.price) / (t.sl - t.tp);
+  return Math.max(0, Math.min(1, v));
+}
+function entryPct(t) {
+  if (t.sl == null || t.tp == null || t.sl === t.tp) return null;
+  return t.side === "BUY" ? (t.entry - t.sl) / (t.tp - t.sl) : (t.sl - t.entry) / (t.sl - t.tp);
+}
+
+function drawLive(d) {
+  const bid = d.bid;
+  $("px").textContent = bid != null ? bid.toFixed(2) : "—";
+  if (lastBid != null && bid != null && bid !== lastBid) {
+    const up = bid > lastBid;
+    $("pxMove").textContent = (up ? "▲ " : "▼ ") + Math.abs(bid - lastBid).toFixed(2);
+    $("pxMove").className = "small " + (up ? "up" : "down");
+  }
+  lastBid = bid;
+
+  if (!d.open.length) {
+    $("liveOpen").innerHTML = `<div class="empty">No open trades right now.</div>`;
+  } else {
+    $("liveOpen").innerHTML = d.open.map((t) => {
+      const p = pct(t), e = entryPct(t);
+      const toTp = t.tp != null ? Math.abs(t.tp - t.price).toFixed(2) : null;
+      const toSl = t.sl != null ? Math.abs(t.price - t.sl).toFixed(2) : null;
+      const id = `${t.key}-${t.leg}`;
+      const prev = pnlSeen[id];
+      const fl = prev == null || prev === t.pnl ? "" : t.pnl > prev ? " flash-up" : " flash-down";
+      pnlSeen[id] = t.pnl;
+      return `<div class="lt">
+        <div class="lt-top">
+          <div><b class="side-${t.side}">${t.side}</b> ${t.lots} lots <span class="tag">${esc(t.source)}</span></div>
+          <div class="p ${cls(t.pnl)}${fl}">${money(t.pnl)}</div>
+        </div>
+        <div class="lt-sub">Entry ${t.entry} · now ${t.price}${toTp ? ` · ${toTp} to target` : ""}${toSl ? ` · ${toSl} to stop` : ""} · ${fmtT(t.opened)}</div>
+        ${p == null ? "" : `<div class="track" role="img" aria-label="Price between stop loss and target">
+            ${e != null && e > 0 && e < 1 ? `<span class="entry" style="left:${(e * 100).toFixed(1)}%"></span>` : ""}
+            <span class="now" style="left:${(p * 100).toFixed(1)}%"></span></div>
+          <div class="track-l"><span>SL ${t.sl}</span><span>TP ${t.tp}</span></div>`}
+      </div>`;
+    }).join("");
+  }
+  $("livePend").innerHTML = d.pending.length
+    ? `<div class="pend">${d.pending.map((o) => `<span>⏳ ${o.side === "BUY" ? "Buy" : "Sell"} ${o.kind} ${o.price} · ${esc(o.source)}</span>`).join("")}</div>`
+    : "";
+}
+
+async function liveTick() {
+  if (document.visibilityState !== "visible") return;
+  try {
+    const d = await fetchLive();
+    drawLive(d);
+    lastOk = Date.now();
+    $("liveDot").className = "dot on";
+  } catch (e) {
+    $("liveDot").className = "dot";
+    if (!lastOk) $("liveOpen").innerHTML = `<div class="empty">⚠️ ${esc(e.message)}</div>`;
+  }
+}
+setInterval(() => {
+  if (!lastOk) return;
+  const s = Math.round((Date.now() - lastOk) / 1000);
+  $("liveAge").textContent = s > 20 ? `Last update ${s}s ago — reconnecting…` : "Updates every 5 seconds";
+  if (s > 20) $("liveDot").className = "dot";
+}, 1000);
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") { liveTick(); load(); } });
+
+liveTick();
+setInterval(liveTick, 5000);
 load();
 setInterval(load, 60000);

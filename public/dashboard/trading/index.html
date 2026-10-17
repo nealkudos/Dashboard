@@ -39,6 +39,16 @@
 
     <div class="banner err" id="err" hidden></div>
 
+    <section class="card live" id="live">
+      <div class="live-head">
+        <h3><span class="dot" id="liveDot"></span> Live</h3>
+        <div class="px"><span class="muted small">Gold</span> <b id="px">—</b> <span id="pxMove" class="small"></span></div>
+      </div>
+      <div id="liveOpen"><div class="empty">Loading…</div></div>
+      <div id="livePend"></div>
+      <div class="muted small" id="liveAge"></div>
+    </section>
+
     <div class="tiles" id="tiles"></div>
 
     <div class="two">
@@ -47,7 +57,6 @@
     </div>
 
     <section class="card"><h3>By source</h3><div id="sources"></div></section>
-    <section class="card"><h3>Open trades</h3><div id="open"></div></section>
     <section class="card">
       <h3>Closed trades</h3>
       <div class="chips" id="chips"></div>

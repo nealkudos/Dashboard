@@ -62,3 +62,27 @@ svg { display: block; width: 100%; height: auto; }
 .empty { color: var(--muted); font-size: 13px; padding: 6px 0; }
 .more { width: 100%; margin-top: 8px; background: var(--surface-2); color: var(--text); font-weight: 500; }
 .foot { text-align: center; margin-top: 8px; }
+
+/* ---------- Live panel ---------- */
+.live { border-color: color-mix(in srgb, var(--ok) 35%, var(--line)); }
+.live-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 4px; }
+.live-head h3 { display: flex; align-items: center; gap: 7px; margin: 0; color: var(--text); }
+.live-head .px b { font-size: 20px; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); display: inline-block; }
+.dot.on { background: var(--ok); box-shadow: 0 0 0 0 color-mix(in srgb, var(--ok) 60%, transparent); animation: pulse 2s infinite; }
+@keyframes pulse { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--ok) 55%, transparent); } 70% { box-shadow: 0 0 0 8px transparent; } 100% { box-shadow: 0 0 0 0 transparent; } }
+@media (prefers-reduced-motion: reduce) { .dot.on { animation: none; } }
+.lt { padding: 12px 0; border-bottom: 1px solid var(--line); }
+.lt:last-child { border-bottom: 0; }
+.lt-top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.lt-top .p { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; transition: color .3s; }
+.lt-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.track { position: relative; height: 8px; border-radius: 4px; margin: 14px 0 6px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--danger) 35%, var(--surface-2)), var(--surface-2) 50%, color-mix(in srgb, var(--ok) 35%, var(--surface-2))); }
+.track .entry { position: absolute; top: -4px; width: 2px; height: 16px; background: var(--muted); border-radius: 1px; transform: translateX(-1px); }
+.track .now { position: absolute; top: 50%; width: 14px; height: 14px; border-radius: 50%; background: var(--text);
+  border: 2px solid var(--surface); transform: translate(-50%, -50%); transition: left .6s ease; box-shadow: var(--shadow); }
+.track-l { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.pend { font-size: 12px; color: var(--muted); padding: 8px 0 0; display: flex; flex-wrap: wrap; gap: 6px 14px; }
+.flash-up { color: var(--ok) !important; } .flash-down { color: var(--danger) !important; }
+#liveAge { margin-top: 8px; }

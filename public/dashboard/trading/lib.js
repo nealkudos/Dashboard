@@ -8,6 +8,14 @@ export async function fetchTrading(days) {
   return body.data;
 }
 
+export async function fetchLive() {
+  const res = await fetch("/api/trading-live", { credentials: "same-origin" });
+  if (res.status === 401) { location.replace("/"); throw new Error("Signed out"); }
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok || body.ok === false) throw new Error(body.error || `Error ${res.status}`);
+  return body.data;
+}
+
 export const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 export const money = (v, sign = true) =>
   (sign && v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(v).toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
