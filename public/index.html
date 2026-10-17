@@ -31,8 +31,8 @@
           <input id="s-token" type="password" autocomplete="off" required>
           <label for="s-email">Email</label>
           <input id="s-email" type="email" autocomplete="username" required>
-          <label for="s-pass">Password (12+ characters)</label>
-          <input id="s-pass" type="password" autocomplete="new-password" minlength="12" required>
+          <label for="s-pass">Password (8+ characters)</label>
+          <input id="s-pass" type="password" autocomplete="new-password" minlength="8" required>
           <button class="full" type="submit">Continue</button>
         </form>
       </section>
@@ -49,8 +49,8 @@
         <div class="secret" id="secret"></div>
         <form id="f-enrol">
           <div id="enrol-pass-wrap" hidden>
-            <label for="e-pass">New password (12+ characters)</label>
-            <input id="e-pass" type="password" autocomplete="new-password" minlength="12">
+            <label for="e-pass">New password (8+ characters)</label>
+            <input id="e-pass" type="password" autocomplete="new-password" minlength="8">
           </div>
           <label for="e-code">6-digit code</label>
           <input id="e-code" class="code" inputmode="numeric" pattern="\d{6}" maxlength="6" autocomplete="one-time-code" required>
@@ -94,8 +94,8 @@
         <h2>Time for a new password</h2>
         <p class="muted small" id="rotate-pass-hint"></p>
         <form id="f-rotate-pass">
-          <label for="r-pass">New password (12+ characters)</label>
-          <input id="r-pass" type="password" autocomplete="new-password" minlength="12" required>
+          <label for="r-pass">New password (8+ characters)</label>
+          <input id="r-pass" type="password" autocomplete="new-password" minlength="8" required>
           <button class="full" type="submit">Save and continue</button>
         </form>
       </section>

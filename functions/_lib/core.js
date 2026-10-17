@@ -142,7 +142,7 @@ export async function hashRecoveryCodes(codes) {
 }
 
 export function passwordProblem(pw) {
-  if (typeof pw !== "string" || pw.length < 12) return "Password must be at least 12 characters.";
+  if (typeof pw !== "string" || pw.length < 8) return "Password must be at least 8 characters.";
   if (pw.length > 200) return "Password is too long.";
   return null;
 }

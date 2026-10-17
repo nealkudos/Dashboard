@@ -129,7 +129,7 @@ $("f-mfa").addEventListener("submit", (ev) => {
 for (const id of ["m-code", "e-code"]) {
   $(id).addEventListener("input", (e) => {
     e.target.value = e.target.value.replace(/\D/g, "").slice(0, 6);
-    if (e.target.value.length === 6 && (id === "m-code" || $("enrol-pass-wrap").hidden || $("e-pass").value.length >= 12)) {
+    if (e.target.value.length === 6 && (id === "m-code" || $("enrol-pass-wrap").hidden || $("e-pass").value.length >= 8)) {
       e.target.form.requestSubmit();
     }
   });
