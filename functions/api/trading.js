@@ -8,7 +8,9 @@
 import { json, fail } from "../_lib/core.js";
 
 export async function onRequestGet({ request, env }) {
-  const base = String(env.COPIER_URL || "").trim().replace(/\/+$/, "");
+  let base = String(env.COPIER_URL || "").trim().replace(/\/+$/, "");
+  // Railway shows the address without "https://" - add it if it was pasted that way
+  if (base && !/^[a-z]+:\/\//i.test(base)) base = "https://" + base;
   if (!base || !env.COPIER_PASSWORD) {
     return fail("Trading isn't connected yet — add COPIER_URL and COPIER_PASSWORD in Cloudflare.", 503);
   }
