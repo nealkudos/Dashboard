@@ -14,7 +14,7 @@
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --bg: #111214;
     --surface: #1a1b1e;
     --surface-2: #222327;
@@ -29,6 +29,23 @@
     color-scheme: dark;
   }
 }
+
+/* Light / dark switch (assets/theme.js) — overrides the phone setting when chosen */
+:root[data-theme="dark"] {
+    --bg: #111214;
+    --surface: #1a1b1e;
+    --surface-2: #222327;
+    --line: #2d2e33;
+    --text: #ececea;
+    --muted: #9a9ca2;
+    --accent: #6fbfa6;
+    --accent-ink: #0d1a16;
+    --danger: #ef7d6a;
+    --ok: #7ccf96;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 6px 20px rgba(0, 0, 0, .25);
+    color-scheme: dark;
+  }
+:root[data-theme="light"] { color-scheme: light; }
 
 * { box-sizing: border-box; }
 html, body { margin: 0; }
@@ -222,3 +239,6 @@ body.editing .block.is-hidden { display: flex; }
 }
 .editbar span { white-space: nowrap; }
 body.editing main.dash { padding-bottom: calc(100px + env(safe-area-inset-bottom)); }
+
+/* Theme switch button (any page) */
+.theme-btn { background: var(--surface-2); color: var(--text); padding: 7px 10px; font-size: 16px; line-height: 1; font-weight: 500; }

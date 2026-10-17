@@ -37,6 +37,19 @@ Each block gets `ctx.load()` / `ctx.save()` for its own private storage, and `ct
 
 Blocks that need outside data (calendar, email, weather…) should fetch it through a small Cloudflare Function in `functions/api/` so API keys stay on the server — anything under `/api/` (except sign-in) is automatically locked to signed-in users.
 
+## Trading (signal-copier bot)
+
+`/dashboard/trading/` is a full trading dashboard, and the **Trading** block on the main dashboard shows the
+headline numbers. The data comes from the signal-copier bot on Railway through `functions/api/trading.js`, so the
+bot's password stays on Cloudflare. Settings → Variables and secrets:
+
+- `COPIER_URL` — the bot's Railway address, e.g. `https://signal-copier-production.up.railway.app`
+- `COPIER_PASSWORD` — type **Secret** — the same value as `DASHBOARD_PASSWORD` on Railway
+
+New dashboards can follow the same pattern: a page in `public/dashboard/<name>/`, a function in
+`functions/api/<name>.js` for its data, and an optional summary block. `assets/theme.js` adds the ☀️/🌙 switch
+to any page that loads it and has a `.theme-btn` button.
+
 ## Files
 
 ```

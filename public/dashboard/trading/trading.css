@@ -1,0 +1,64 @@
+/* Trading page — uses the site's colour tokens from /assets/app.css */
+.back {
+  color: var(--text); text-decoration: none; font-size: 28px; line-height: 1;
+  padding: 0 6px 2px 0; margin-right: -2px;
+}
+main.trd { max-width: 1040px; margin: 0 auto; padding: 18px 16px calc(40px + env(safe-area-inset-bottom)); }
+.trd-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+.pills { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+.pill { font-size: 12px; padding: 3px 9px; border-radius: 999px; background: var(--surface-2); color: var(--muted); white-space: nowrap; }
+.pill.live { background: color-mix(in srgb, var(--ok) 16%, transparent); color: var(--ok); }
+.pill.warn { background: color-mix(in srgb, var(--danger) 15%, transparent); color: var(--danger); }
+
+.seg { display: inline-flex; background: var(--surface-2); border-radius: 10px; padding: 3px; }
+.seg button { background: transparent; color: var(--muted); font-weight: 500; font-size: 13px; padding: 6px 11px; border-radius: 8px; }
+.seg button.on { background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
+
+.banner.err {
+  background: color-mix(in srgb, var(--danger) 12%, var(--surface)); border: 1px solid var(--danger);
+  color: var(--text); padding: 12px 14px; border-radius: 12px; margin-bottom: 12px;
+}
+
+.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 12px; }
+@media (max-width: 760px) { .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.tile, .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
+.tile { padding: 12px 14px; min-width: 0; }
+.tile .k { font-size: 12px; color: var(--muted); }
+.tile .v { font-size: 22px; font-weight: 650; letter-spacing: -.02em; margin-top: 2px; font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tile .s { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+.card { padding: 14px; margin-bottom: 12px; }
+.card h3 { font-size: 14px; color: var(--muted); font-weight: 600; margin: 0 0 10px; }
+.two { display: grid; grid-template-columns: 1fr; gap: 12px; }
+.two .card { margin-bottom: 0; }
+.two { margin-bottom: 12px; }
+@media (min-width: 760px) { .two { grid-template-columns: 1.4fr 1fr; } }
+
+.up { color: var(--ok); } .down { color: var(--danger); } .flat { color: var(--muted); }
+.side-BUY { color: var(--ok); } .side-SELL { color: var(--danger); }
+svg { display: block; width: 100%; height: auto; }
+.axis { stroke: var(--line); stroke-width: 1; }
+.lbl { fill: var(--muted); font-size: 11px; }
+
+.src { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; padding: 10px 0; border-bottom: 1px solid var(--line); align-items: center; }
+.src:last-child { border-bottom: 0; }
+.src .nm { font-weight: 600; }
+.src .nt { font-weight: 700; font-size: 17px; text-align: right; font-variant-numeric: tabular-nums; }
+.src .dt { font-size: 12px; color: var(--muted); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.src .pa { font-size: 12px; color: var(--muted); text-align: right; }
+.bar { height: 6px; width: 60px; border-radius: 3px; background: var(--surface-2); overflow: hidden; display: inline-block; }
+.bar i { display: block; height: 100%; background: var(--ok); }
+
+.chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+.chips button { border: 1px solid var(--line); background: transparent; color: var(--muted); font-weight: 500; font-size: 12px; padding: 4px 10px; border-radius: 999px; }
+.chips button.on { background: var(--text); color: var(--bg); border-color: var(--text); }
+
+.trade { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; padding: 9px 0; border-bottom: 1px solid var(--line); }
+.trade:last-of-type { border-bottom: 0; }
+.trade .t1 { font-weight: 600; }
+.trade .t2 { font-size: 12px; color: var(--muted); }
+.trade .p { font-weight: 650; text-align: right; font-variant-numeric: tabular-nums; }
+.tag { font-size: 11px; padding: 1px 7px; border-radius: 6px; background: var(--surface-2); color: var(--muted); margin-left: 4px; font-weight: 500; }
+.empty { color: var(--muted); font-size: 13px; padding: 6px 0; }
+.more { width: 100%; margin-top: 8px; background: var(--surface-2); color: var(--text); font-weight: 500; }
+.foot { text-align: center; margin-top: 8px; }

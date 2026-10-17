@@ -9,9 +9,11 @@ import welcome from "./welcome.js";
 import links from "./links.js";
 import notes from "./notes.js";
 import starter from "./starter.js";
+import trading from "./trading.js";
 
 export default [
   welcome,
+  trading,
   links,
   notes,
   starter,
