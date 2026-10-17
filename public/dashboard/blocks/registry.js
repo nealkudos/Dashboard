@@ -11,11 +11,13 @@ import links from "./links.js";
 import notes from "./notes.js";
 import starter from "./starter.js";
 import trading from "./trading.js";
+import scanner from "./scanner.js";
 
 export default [
   welcome,
   calendar,
   trading,
+  scanner,
   links,
   notes,
   starter,

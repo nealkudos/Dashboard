@@ -1,0 +1,41 @@
+/* Chart scanner page (builds on trading.css) */
+.navbtn { background: var(--surface-2); color: var(--text); padding: 7px 12px; font-size: 13px; font-weight: 600; }
+.bias { display: flex; align-items: center; gap: 14px; padding: 16px; }
+.bias .big { font-size: 26px; font-weight: 750; letter-spacing: -.02em; line-height: 1.1; }
+.bias .ico { width: 52px; height: 52px; border-radius: 14px; display: grid; place-items: center; font-size: 26px; flex: none; }
+.bias.up .ico { background: color-mix(in srgb, var(--ok) 18%, transparent); color: var(--ok); }
+.bias.down .ico { background: color-mix(in srgb, var(--danger) 16%, transparent); color: var(--danger); }
+.bias.mixed .ico { background: var(--surface-2); color: var(--muted); }
+.bias.up { border-color: color-mix(in srgb, var(--ok) 40%, var(--line)); }
+.bias.down { border-color: color-mix(in srgb, var(--danger) 40%, var(--line)); }
+.bias .px { margin-left: auto; text-align: right; }
+.bias .px b { font-size: 22px; font-variant-numeric: tabular-nums; }
+.tfs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.tf { background: var(--surface-2); border-radius: 12px; padding: 12px; min-width: 0; }
+.tf .n { font-size: 12px; color: var(--muted); font-weight: 600; }
+.tf .t { font-size: 18px; font-weight: 700; margin: 2px 0 6px; }
+.tf .t.up { color: var(--ok); } .tf .t.down { color: var(--danger); } .tf .t.mixed, .tf .t.na { color: var(--muted); }
+.tf .e { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; line-height: 1.5; }
+.rule { margin: 10px 0 0; }
+.sig { display: grid; grid-template-columns: auto 1fr auto; gap: 2px 10px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.sig:last-child { border-bottom: 0; }
+.sig .side { font-weight: 750; font-size: 13px; padding: 3px 8px; border-radius: 7px; }
+.sig .side.BUY { background: color-mix(in srgb, var(--ok) 16%, transparent); color: var(--ok); }
+.sig .side.SELL { background: color-mix(in srgb, var(--danger) 15%, transparent); color: var(--danger); }
+.sig .w { font-weight: 600; }
+.sig .d { font-size: 12px; color: var(--muted); grid-column: 2 / 4; }
+.sig .tm { font-size: 12px; color: var(--muted); text-align: right; }
+.setup { padding: 12px 0; border-bottom: 1px solid var(--line); }
+.setup:last-child { border-bottom: 0; }
+.setup .h { display: flex; justify-content: space-between; gap: 10px; align-items: center; }
+.setup .nm { font-weight: 650; }
+.badge { font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 999px; }
+.badge.on { background: color-mix(in srgb, var(--ok) 16%, transparent); color: var(--ok); }
+.badge.off { background: var(--surface-2); color: var(--muted); }
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin-top: 8px; }
+.stats div { font-size: 12px; color: var(--muted); }
+.stats b { display: block; font-size: 15px; color: var(--text); font-variant-numeric: tabular-nums; }
+.setup .why { font-size: 12px; color: var(--muted); margin-top: 6px; }
+@media (max-width: 520px) { .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } .tf .t { font-size: 16px; } }
+@media (max-width: 520px) { .bias .big { font-size: 20px; } .bias { gap: 12px; } .bias .ico { width: 44px; height: 44px; font-size: 22px; } }
+.sig .tag { white-space: nowrap; }
