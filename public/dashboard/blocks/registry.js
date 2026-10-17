@@ -6,6 +6,7 @@
 // │  on the dashboard itself with Menu → Edit layout.              │
 // └───────────────────────────────────────────────────────────────┘
 import welcome from "./welcome.js";
+import calendar from "./calendar.js";
 import links from "./links.js";
 import notes from "./notes.js";
 import starter from "./starter.js";
@@ -13,6 +14,7 @@ import trading from "./trading.js";
 
 export default [
   welcome,
+  calendar,
   trading,
   links,
   notes,

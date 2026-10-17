@@ -50,6 +50,10 @@ New dashboards can follow the same pattern: a page in `public/dashboard/<name>/`
 `functions/api/<name>.js` for its data, and an optional summary block. `assets/theme.js` adds the ☀️/🌙 switch
 to any page that loads it and has a `.theme-btn` button.
 
+## Calendar block
+
+"Upcoming" shows the next 14 days from any number of calendars. On the dashboard tap **Calendars** under the block and paste each calendar's private iCal link (the block explains where to find them for Apple, Google and Outlook). Links are stored server-side only; feeds are re-fetched at most every 10 minutes.
+
 ## Files
 
 ```

@@ -42,6 +42,13 @@ function makeCtx(block) {
     save(data) {
       return call(`/api/blocks/${block.id}`, { method: "PUT", body: JSON.stringify({ data }) });
     },
+    /** Call one of your own /api/ endpoints (signed-in). Pass a body object to send JSON. */
+    api(path, { method, body } = {}) {
+      return call(path, {
+        method: method || (body ? "POST" : "GET"),
+        body: body ? JSON.stringify(body) : undefined,
+      });
+    },
     /** Run fn now and every `ms` milliseconds; stopped automatically. */
     every(ms, fn) { fn(); timers.push(setInterval(fn, ms)); },
     _stop() { timers.forEach(clearInterval); },
