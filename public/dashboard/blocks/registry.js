@@ -9,7 +9,6 @@ import welcome from "./welcome.js";
 import calendar from "./calendar.js";
 import links from "./links.js";
 import notes from "./notes.js";
-import starter from "./starter.js";
 import trading from "./trading.js";
 import scanner from "./scanner.js";
 
@@ -20,5 +19,4 @@ export default [
   scanner,
   links,
   notes,
-  starter,
 ];

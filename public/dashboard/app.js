@@ -74,9 +74,30 @@ function el(tag, attrs = {}, ...kids) {
   return n;
 }
 
+// ---------- Masonry packing ----------
+// Each block spans exactly as many 4px grid rows as it is tall, so short blocks
+// tuck in under each other instead of leaving gaps beside tall ones.
+const ROW = 4, GAP = 16;
+let packQueued = false;
+function pack() {
+  packQueued = false;
+  for (const card of grid.children) {
+    const h = card.getBoundingClientRect().height;
+    card.style.gridRowEnd = h ? `span ${Math.ceil((h + GAP) / ROW)}` : "";
+  }
+}
+function queuePack() {
+  if (packQueued) return;
+  packQueued = true;
+  requestAnimationFrame(pack);
+}
+const sizeWatch = new ResizeObserver(queuePack);
+window.addEventListener("resize", queuePack);
+
 async function renderAll() {
   for (const [, c] of cleanups) c();
   cleanups.clear();
+  sizeWatch.disconnect();
   grid.innerHTML = "";
 
   for (const block of orderedBlocks()) {
@@ -96,6 +117,7 @@ async function renderAll() {
       body,
     );
     grid.append(card);
+    sizeWatch.observe(card);
 
     // Render blocks in parallel so one slow block doesn't hold up the rest.
     const ctx = makeCtx(block);
@@ -138,6 +160,7 @@ function toggleHidden(id) {
 function setEditing(on) {
   document.body.classList.toggle("editing", on);
   $("editbar").hidden = !on;
+  queuePack();
 }
 
 // ---------- Menu ----------

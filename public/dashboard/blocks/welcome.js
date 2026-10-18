@@ -6,7 +6,7 @@ export default {
 
   render(el, ctx) {
     el.innerHTML = `
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;height:100%;min-height:110px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;height:100%">
         <div>
           <div data-greet style="font-size:24px;font-weight:650;letter-spacing:-.01em"></div>
           <div data-date class="muted"></div>
