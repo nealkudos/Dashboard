@@ -33,7 +33,7 @@ To use it like an app on iPhone: open it in Safari → Share → *Add to Home Sc
 2. Open `public/dashboard/blocks/registry.js`, import it and add it to the list.
 3. Push to GitHub — Cloudflare redeploys automatically.
 
-Each block gets `ctx.load()` / `ctx.save()` for its own private storage, and `ctx.every(ms, fn)` for refreshing. Rearrange, resize (S/M/L) or hide blocks on the live site via **Menu → Edit layout**.
+Each block gets `ctx.load()` / `ctx.save()` for its own private storage, and `ctx.every(ms, fn)` for refreshing. Arrange the dashboard via **Menu → Edit layout**: drag a block by its title bar, drag a bottom corner to resize, or hide it. Positions are saved to your account (the grid is [GridStack](https://gridstackjs.com), MIT, vendored in `public/assets/vendor/`). Phones show one column in the same order.
 
 Blocks that need outside data (calendar, email, weather…) should fetch it through a small Cloudflare Function in `functions/api/` so API keys stay on the server — anything under `/api/` (except sign-in) is automatically locked to signed-in users.
 

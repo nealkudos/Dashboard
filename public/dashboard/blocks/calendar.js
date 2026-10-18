@@ -24,7 +24,7 @@ export default {
     el.innerHTML = `
       <div style="display:flex;flex-direction:column;height:100%;gap:8px">
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap" data-legend></div>
-        <div data-list style="flex:1;overflow:auto;max-height:min(70vh, 640px);margin:0 -4px;padding:0 4px"></div>
+        <div data-list style="flex:1;min-height:0;overflow:auto;margin:0 -4px;padding:0 4px"></div>
         <div data-foot class="muted small" style="display:flex;justify-content:space-between;align-items:center;gap:8px">
           <span data-status></span>
           <button class="link small" data-settings>Calendars</button>

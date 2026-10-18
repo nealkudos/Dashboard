@@ -2,8 +2,7 @@
 import BLOCKS from "./blocks/registry.js";
 
 const $ = (id) => document.getElementById(id);
-const grid = $("grid");
-let prefs = { order: [], sizes: {}, hidden: [] };
+let prefs = { layout: {}, hidden: [] };
 let me = null;
 const cleanups = new Map();
 
@@ -56,14 +55,22 @@ function makeCtx(block) {
 }
 
 // ---------- Layout ----------
-function orderedBlocks() {
-  const ids = BLOCKS.map((b) => b.id);
-  const order = prefs.order.filter((id) => ids.includes(id));
-  for (const id of ids) if (!order.includes(id)) order.push(id); // new blocks appear at the end
-  return order.map((id) => BLOCKS.find((b) => b.id === id));
-}
+// Blocks sit on a 12-column grid. In Edit layout you drag a block by its title bar
+// and resize it from a bottom corner; positions are saved to your account.
+// Phones show one column in the same top-to-bottom order.
+const GS = window.GridStack && (window.GridStack.GridStack || window.GridStack);
+const CELL = 44;
 
-function sizeOf(b) { return prefs.sizes[b.id] || b.size || "s"; }
+// Starting positions (x, y, width, height in grid units) until you move things.
+const DEFAULTS = {
+  welcome:  { x: 0, y: 0,  w: 6, h: 4 },
+  calendar: { x: 6, y: 0,  w: 6, h: 13 },
+  trading:  { x: 0, y: 4,  w: 6, h: 7 },
+  scanner:  { x: 0, y: 11, w: 3, h: 6 },
+  links:    { x: 3, y: 11, w: 3, h: 6 },
+  notes:    { x: 6, y: 13, w: 6, h: 5 },
+};
+const SIZE_DEFAULT = { s: { w: 3, h: 6 }, m: { w: 6, h: 6 }, l: { w: 12, h: 6 } };
 
 function el(tag, attrs = {}, ...kids) {
   const n = document.createElement(tag);
@@ -74,94 +81,75 @@ function el(tag, attrs = {}, ...kids) {
   return n;
 }
 
-// ---------- Column layout ----------
-// Blocks are stacked into columns (2 on iPad/desktop, 1 on phone). Each block goes into
-// whichever column is currently shortest, keeping your order, so there are no big gaps.
-// Two small ("S") blocks next to each other share a row side by side.
-let cards = [];
-let layoutTimer = null;
+const isEditing = () => document.body.classList.contains("editing");
 
-function makeCols(n) {
-  if (grid.children.length === n && [...grid.children].every((c) => c.classList.contains("col"))) return [...grid.children];
-  grid.innerHTML = "";
-  return Array.from({ length: n }, () => { const c = el("div", { class: "col" }); grid.append(c); return c; });
+let gs = null;
+function grid() {
+  if (gs) return gs;
+  gs = GS.init({
+    column: 12,
+    cellHeight: CELL,
+    margin: 8,
+    float: false,            // blocks slide up to fill gaps, like phone widgets
+    animate: true,
+    staticGrid: true,        // locked until you tap Edit layout
+    handle: ".block-head",
+    alwaysShowResizeHandle: true,
+    resizable: { handles: "se,sw" },
+    columnOpts: { breakpoints: [{ w: 720, c: 1 }], layout: "list" },
+  }, $("grid"));
+  gs.on("change", () => { setOrder(); queueSaveLayout(); });
+  return gs;
 }
 
-function layout() {
-  layoutTimer = null;
-  const active = document.activeElement;
-  if (active && active.closest && active.closest(".block") && /^(INPUT|TEXTAREA|SELECT)$/.test(active.tagName)) {
-    active.addEventListener("blur", queueLayout, { once: true }); // don't move a block while you're typing in it
-    return;
-  }
-  const n = grid.clientWidth >= 720 ? 2 : 1;
-  const cols = makeCols(n);
-  const editing = document.body.classList.contains("editing");
-  const visible = cards.filter((c) => editing || !c.classList.contains("is-hidden"));
-
-  // Group into units: two neighbouring small blocks share a row (when there's room).
-  const units = [];
-  for (let i = 0; i < visible.length; i++) {
-    const a = visible[i], b = visible[i + 1];
-    if (n > 1 && a.dataset.size === "s" && b && b.dataset.size === "s") { units.push([a, b]); i++; }
-    else units.push([a]);
-  }
-  for (const u of units) for (const c of u) c.classList.toggle("half", u.length === 2);
-
-  // Make sure every card is in the DOM so it can be measured (width doesn't depend on column).
-  for (const c of cards) if (!c.parentElement || !c.parentElement.classList.contains("col")) cols[0].append(c);
-
-  const heights = Array(n).fill(0);
-  const plan = units.map((u) => {
-    const h = Math.max(...u.map((c) => c.offsetHeight)) + 16;
-    let k = 0;
-    for (let i = 1; i < n; i++) if (heights[i] < heights[k] - 24) k = i; // prefer left unless clearly shorter
-    heights[k] += h;
-    return k;
-  });
-
-  // Only touch the DOM if something actually needs to move.
-  const want = cols.map(() => []);
-  units.forEach((u, i) => want[plan[i]].push(...u));
-  cards.filter((c) => !visible.includes(c)).forEach((c) => want[0].push(c));
-  want.forEach((list, k) => {
-    const same = list.length === cols[k].children.length && list.every((c, i) => cols[k].children[i] === c);
-    if (!same) list.forEach((c) => cols[k].append(c));
-  });
+// Phone view stacks blocks top-to-bottom using the full-width layout's reading order.
+function setOrder() {
+  if (!gs || gs.getColumn() !== 12) return;
+  for (const n of gs.engine.nodes) n.el.style.order = n.y * 12 + n.x;
 }
 
-function queueLayout() {
-  clearTimeout(layoutTimer);
-  layoutTimer = setTimeout(layout, 60);
+let saveTimer = null;
+function queueSaveLayout() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    if (!gs || gs.getColumn() !== 12) return; // only the full-width layout is saved
+    const layout = { ...prefs.layout };
+    for (const n of gs.save(false)) if (n.id) layout[n.id] = { x: n.x, y: n.y, w: n.w, h: n.h };
+    prefs.layout = layout;
+    savePrefs();
+  }, 400);
 }
-const sizeWatch = new ResizeObserver(queueLayout);
-window.addEventListener("resize", queueLayout);
+
+function placeFor(block) {
+  const saved = prefs.layout[block.id];
+  if (saved) return saved;
+  if (DEFAULTS[block.id]) return DEFAULTS[block.id];
+  return { ...SIZE_DEFAULT[block.size || "s"], autoPosition: true }; // new blocks drop into the first free space
+}
 
 async function renderAll() {
   for (const [, c] of cleanups) c();
   cleanups.clear();
-  sizeWatch.disconnect();
-  grid.innerHTML = "";
-  cards = [];
+  const g = grid();
+  g.batchUpdate();
+  g.removeAll(true);
 
-  for (const block of orderedBlocks()) {
+  const editing = isEditing();
+  for (const block of BLOCKS) {
+    const hidden = prefs.hidden.includes(block.id);
+    if (hidden && !editing) continue;
+
     const body = el("div", { class: "block-body" });
     const tools = el("div", { class: "block-tools" },
-      el("button", { title: "Move earlier", onclick: () => move(block.id, -1) }, "◀"),
-      el("button", { title: "Move later", onclick: () => move(block.id, 1) }, "▶"),
-      el("button", { title: "Change size", onclick: () => cycleSize(block.id) }, sizeOf(block).toUpperCase()),
-      el("button", { title: "Show / hide", onclick: () => toggleHidden(block.id) }, prefs.hidden.includes(block.id) ? "Show" : "Hide"),
+      el("button", { title: hidden ? "Show on dashboard" : "Hide from dashboard", onclick: () => toggleHidden(block.id) }, hidden ? "Show" : "Hide"),
     );
-    const card = el("section", {
-      class: `block${prefs.hidden.includes(block.id) ? " is-hidden" : ""}`,
-      "data-block": block.id,
-      "data-size": sizeOf(block),
-    },
+    const card = el("section", { class: `block${hidden ? " is-hidden" : ""}`, "data-block": block.id },
       el("div", { class: "block-head" }, el("span", { class: "title" }, block.title), tools),
       body,
     );
-    cards.push(card);
-    sizeWatch.observe(card);
+    const pos = placeFor(block);
+    const item = el("div", { class: "grid-stack-item" }, el("div", { class: "grid-stack-item-content" }, card));
+    g.addWidget(item, { id: block.id, x: pos.x, y: pos.y, w: pos.w, h: pos.h, autoPosition: !!pos.autoPosition, minW: 2, minH: 3 });
 
     // Render blocks in parallel so one slow block doesn't hold up the rest.
     const ctx = makeCtx(block);
@@ -176,25 +164,11 @@ async function renderAll() {
         body.append(el("div", { class: "block-error" }, `This block failed to load: ${e.message}`));
       });
   }
-  layout();
-}
-
-function currentOrder() { return orderedBlocks().map((b) => b.id); }
-
-function move(id, dir) {
-  const order = currentOrder();
-  const i = order.indexOf(id), j = i + dir;
-  if (j < 0 || j >= order.length) return;
-  [order[i], order[j]] = [order[j], order[i]];
-  prefs.order = order;
-  savePrefs(); renderAll();
-}
-
-function cycleSize(id) {
-  const block = BLOCKS.find((b) => b.id === id);
-  const next = { s: "m", m: "l", l: "s" }[sizeOf(block)];
-  prefs.sizes[id] = next;
-  savePrefs(); renderAll();
+  g.batchUpdate(false);
+  g.setStatic(!editing);
+  // order for the phone view comes from saved/default positions
+  for (const n of g.engine.nodes) { const p = placeFor({ id: n.id }); n.el.style.order = (p.y ?? 99) * 12 + (p.x ?? 0); }
+  setOrder();
 }
 
 function toggleHidden(id) {
@@ -205,7 +179,8 @@ function toggleHidden(id) {
 function setEditing(on) {
   document.body.classList.toggle("editing", on);
   $("editbar").hidden = !on;
-  queueLayout();
+  if (prefs.hidden.length) renderAll();   // show/hide the hidden blocks so they can be brought back
+  else grid().setStatic(!on);
 }
 
 // ---------- Menu ----------
@@ -219,7 +194,7 @@ document.addEventListener("click", (e) => { if (!menu.contains(e.target)) menu.h
 
 $("m-edit").onclick = () => { menu.hidden = true; setEditing(true); };
 $("e-done").onclick = () => setEditing(false);
-$("e-reset").onclick = () => { prefs = { order: [], sizes: {}, hidden: [] }; savePrefs(); renderAll(); };
+$("e-reset").onclick = () => { prefs = { layout: {}, hidden: [] }; savePrefs(); renderAll(); };
 
 $("m-rotate").onclick = async () => {
   try {
@@ -247,6 +222,6 @@ $("m-logout-all").onclick = () => signOut(true);
   if (f) { sessionStorage.removeItem("dash-flash"); flash(f); }
   else if (s.daysLeft <= 3) flash(`Heads up: your password and authenticator change is due in ${s.daysLeft} day${s.daysLeft === 1 ? "" : "s"}.`);
 
-  try { prefs = { order: [], sizes: {}, hidden: [], ...(await call("/api/prefs")).prefs }; } catch {}
+  try { const p = (await call("/api/prefs")).prefs || {}; prefs = { layout: p.layout || {}, hidden: p.hidden || [] }; } catch {}
   await renderAll();
 })();

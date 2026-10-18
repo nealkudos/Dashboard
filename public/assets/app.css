@@ -180,25 +180,25 @@ button.icon { padding: 7px 9px; font-size: 13px; }
 .menu-panel .note { padding: 6px 10px; font-size: 12px; color: var(--muted); }
 
 main.dash { max-width: 1240px; margin: 0 auto; padding: 20px 16px calc(40px + env(safe-area-inset-bottom)); }
-.grid {
-  display: flex;
-  gap: 16px;
-  align-items: flex-start;
+/* ---------- Drag-and-drop grid (GridStack) ---------- */
+.grid-stack { margin: 0 -8px; }             /* cancel the outer half of the 8px item margins */
+.grid-stack-item-content { overflow: visible !important; }
+.grid-stack-item-content > .block { height: 100%; }
+/* Phone (one column): stack blocks in your saved order, each as tall as its content. */
+.grid-stack.gs-1 { display: flex; flex-direction: column; gap: 16px; height: auto !important; margin: 0; }
+.gs-1 > .grid-stack-item { position: relative !important; width: 100% !important; left: 0 !important; top: auto !important; height: auto !important; }
+.gs-1 > .grid-stack-item > .grid-stack-item-content { position: relative !important; inset: auto !important; }
+.gs-1 > .grid-stack-item > .ui-resizable-handle { display: none !important; }
+body.editing .grid-stack { user-select: none; -webkit-user-select: none; }
+.grid-stack-placeholder > .placeholder-content {
+  border: 2px dashed color-mix(in srgb, var(--accent) 60%, transparent) !important;
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--accent) 10%, transparent) !important;
 }
-.grid > .col {
-  flex: 1 1 0;
-  min-width: 0;
-  display: flex;
-  flex-wrap: wrap;
-  align-content: flex-start;
-  gap: 16px;
-}
-.col > .block { flex: 1 1 100%; min-width: 0; }
-.col > .block.half { flex: 1 1 calc(50% - 8px); }
-
-.block { margin-bottom: 16px; }
-@media (max-width: 980px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 600px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+body.editing .block-head { cursor: grab; touch-action: none; }
+body.editing .ui-draggable-dragging .block { box-shadow: 0 12px 40px rgba(0,0,0,.35); cursor: grabbing; }
+.grid-stack > .grid-stack-item > .ui-resizable-se,
+.grid-stack > .grid-stack-item > .ui-resizable-sw { width: 22px; height: 22px; opacity: .8; }
 
 .block {
   background: var(--surface);
@@ -217,12 +217,11 @@ main.dash { max-width: 1240px; margin: 0 auto; padding: 20px 16px calc(40px + en
   text-transform: uppercase; letter-spacing: .04em;
 }
 .block-head .title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.block-body { padding: 10px 14px 14px; flex: 1; min-height: 0; }
+.block-body { padding: 10px 14px 14px; flex: 1; min-height: 0; overflow: auto; }
 .block-tools { display: none; gap: 4px; }
 body.editing .block-tools { display: flex; }
 body.editing .block { outline: 2px dashed color-mix(in srgb, var(--accent) 45%, transparent); outline-offset: -2px; }
 body.editing .block.is-hidden { opacity: .45; }
-.block.is-hidden { display: none; }
 body.editing .block.is-hidden { display: flex; }
 .block-tools button { padding: 4px 8px; font-size: 12px; background: var(--surface-2); color: var(--text); font-weight: 500; }
 .block-error { color: var(--danger); font-size: 14px; }

@@ -11,6 +11,7 @@
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="icon" href="/assets/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/assets/icon-180.png">
+  <link rel="stylesheet" href="/assets/vendor/gridstack.min.css">
   <link rel="stylesheet" href="/assets/app.css">
   <script src="/assets/theme.js"></script>
   <title>Dashboard</title>
@@ -38,15 +39,16 @@
   <div class="banner" id="flash" hidden></div>
 
   <main class="dash">
-    <div class="grid" id="grid"></div>
+    <div class="grid-stack" id="grid"></div>
   </main>
 
   <div class="editbar" id="editbar" hidden>
-    <span>Editing layout</span>
+    <span>Drag a block by its title · drag a corner to resize</span>
     <button class="ghost" id="e-reset" type="button">Reset</button>
     <button id="e-done" type="button">Done</button>
   </div>
 
+  <script src="/assets/vendor/gridstack-all.js"></script>
   <script src="/dashboard/app.js" type="module"></script>
 </body>
 </html>
