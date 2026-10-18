@@ -74,31 +74,75 @@ function el(tag, attrs = {}, ...kids) {
   return n;
 }
 
-// ---------- Masonry packing ----------
-// Each block spans exactly as many 4px grid rows as it is tall, so short blocks
-// tuck in under each other instead of leaving gaps beside tall ones.
-const ROW = 4, GAP = 16;
-let packQueued = false;
-function pack() {
-  packQueued = false;
-  for (const card of grid.children) {
-    const h = card.getBoundingClientRect().height;
-    card.style.gridRowEnd = h ? `span ${Math.ceil((h + GAP) / ROW)}` : "";
+// ---------- Column layout ----------
+// Blocks are stacked into columns (2 on iPad/desktop, 1 on phone). Each block goes into
+// whichever column is currently shortest, keeping your order, so there are no big gaps.
+// Two small ("S") blocks next to each other share a row side by side.
+let cards = [];
+let layoutTimer = null;
+
+function makeCols(n) {
+  if (grid.children.length === n && [...grid.children].every((c) => c.classList.contains("col"))) return [...grid.children];
+  grid.innerHTML = "";
+  return Array.from({ length: n }, () => { const c = el("div", { class: "col" }); grid.append(c); return c; });
+}
+
+function layout() {
+  layoutTimer = null;
+  const active = document.activeElement;
+  if (active && active.closest && active.closest(".block") && /^(INPUT|TEXTAREA|SELECT)$/.test(active.tagName)) {
+    active.addEventListener("blur", queueLayout, { once: true }); // don't move a block while you're typing in it
+    return;
   }
+  const n = grid.clientWidth >= 720 ? 2 : 1;
+  const cols = makeCols(n);
+  const editing = document.body.classList.contains("editing");
+  const visible = cards.filter((c) => editing || !c.classList.contains("is-hidden"));
+
+  // Group into units: two neighbouring small blocks share a row (when there's room).
+  const units = [];
+  for (let i = 0; i < visible.length; i++) {
+    const a = visible[i], b = visible[i + 1];
+    if (n > 1 && a.dataset.size === "s" && b && b.dataset.size === "s") { units.push([a, b]); i++; }
+    else units.push([a]);
+  }
+  for (const u of units) for (const c of u) c.classList.toggle("half", u.length === 2);
+
+  // Make sure every card is in the DOM so it can be measured (width doesn't depend on column).
+  for (const c of cards) if (!c.parentElement || !c.parentElement.classList.contains("col")) cols[0].append(c);
+
+  const heights = Array(n).fill(0);
+  const plan = units.map((u) => {
+    const h = Math.max(...u.map((c) => c.offsetHeight)) + 16;
+    let k = 0;
+    for (let i = 1; i < n; i++) if (heights[i] < heights[k] - 24) k = i; // prefer left unless clearly shorter
+    heights[k] += h;
+    return k;
+  });
+
+  // Only touch the DOM if something actually needs to move.
+  const want = cols.map(() => []);
+  units.forEach((u, i) => want[plan[i]].push(...u));
+  cards.filter((c) => !visible.includes(c)).forEach((c) => want[0].push(c));
+  want.forEach((list, k) => {
+    const same = list.length === cols[k].children.length && list.every((c, i) => cols[k].children[i] === c);
+    if (!same) list.forEach((c) => cols[k].append(c));
+  });
 }
-function queuePack() {
-  if (packQueued) return;
-  packQueued = true;
-  requestAnimationFrame(pack);
+
+function queueLayout() {
+  clearTimeout(layoutTimer);
+  layoutTimer = setTimeout(layout, 60);
 }
-const sizeWatch = new ResizeObserver(queuePack);
-window.addEventListener("resize", queuePack);
+const sizeWatch = new ResizeObserver(queueLayout);
+window.addEventListener("resize", queueLayout);
 
 async function renderAll() {
   for (const [, c] of cleanups) c();
   cleanups.clear();
   sizeWatch.disconnect();
   grid.innerHTML = "";
+  cards = [];
 
   for (const block of orderedBlocks()) {
     const body = el("div", { class: "block-body" });
@@ -116,7 +160,7 @@ async function renderAll() {
       el("div", { class: "block-head" }, el("span", { class: "title" }, block.title), tools),
       body,
     );
-    grid.append(card);
+    cards.push(card);
     sizeWatch.observe(card);
 
     // Render blocks in parallel so one slow block doesn't hold up the rest.
@@ -132,6 +176,7 @@ async function renderAll() {
         body.append(el("div", { class: "block-error" }, `This block failed to load: ${e.message}`));
       });
   }
+  layout();
 }
 
 function currentOrder() { return orderedBlocks().map((b) => b.id); }
@@ -160,7 +205,7 @@ function toggleHidden(id) {
 function setEditing(on) {
   document.body.classList.toggle("editing", on);
   $("editbar").hidden = !on;
-  queuePack();
+  queueLayout();
 }
 
 // ---------- Menu ----------

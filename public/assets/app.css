@@ -181,15 +181,22 @@ button.icon { padding: 7px 9px; font-size: 13px; }
 
 main.dash { max-width: 1240px; margin: 0 auto; padding: 20px 16px calc(40px + env(safe-area-inset-bottom)); }
 .grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  grid-auto-flow: dense;
-  grid-auto-rows: 4px;     /* masonry: each block spans as many 4px rows as it is tall (set in app.js) */
-  align-items: start;
-  column-gap: 16px;
-  row-gap: 0;
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
 }
-.grid > .block { margin-bottom: 16px; }
+.grid > .col {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: 16px;
+}
+.col > .block { flex: 1 1 100%; min-width: 0; }
+.col > .block.half { flex: 1 1 calc(50% - 8px); }
+
+.block { margin-bottom: 16px; }
 @media (max-width: 980px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 600px) { .grid { grid-template-columns: minmax(0, 1fr); } }
 
@@ -202,11 +209,6 @@ main.dash { max-width: 1240px; margin: 0 auto; padding: 20px 16px calc(40px + en
   min-height: 0;
   overflow: hidden;
 }
-.block[data-size="s"] { grid-column: span 1; }
-.block[data-size="m"] { grid-column: span 2; }
-.block[data-size="l"] { grid-column: span 4; }
-@media (max-width: 980px) { .block[data-size="l"] { grid-column: span 2; } }
-@media (max-width: 600px) { .block[data-size] { grid-column: span 1; } }
 
 .block-head {
   display: flex; align-items: center; gap: 8px;
