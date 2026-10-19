@@ -1,0 +1,22 @@
+{
+  "updated": "2026-10-19T07:45:00+01:00",
+  "league": "Premier League",
+  "picks": [
+    { "label": "Arsenal to beat Everton", "prob": 68.5, "note": "Strongest favourite of the round, but priced short" },
+    { "label": "Man City to win at Villa", "prob": 55.8, "note": "City 7 from 7, Villa 12th" },
+    { "label": "Coventry or draw at Spurs (double chance)", "prob": 36.1, "note": "Spurs bottom with no wins; 64% looks generous", "type": "value" }
+  ],
+  "acca": { "legs": ["Arsenal", "Man City", "Chelsea"], "prob": 21.1 },
+  "fixtures": [
+    { "kickoff": "2026-10-19T20:00:00+01:00", "home": "Tottenham", "away": "Coventry", "p": [63.9, 20.1, 16.0], "tag": "overrated", "take": "Spurs bottom, Coventry just beat Newcastle 4–1. Look at Coventry +1 or the draw." },
+    { "kickoff": "2026-10-23T20:00:00+01:00", "home": "Ipswich", "away": "Nottingham Forest", "p": [30.6, 27.4, 42.0], "tag": "skip", "take": "Too close to call." },
+    { "kickoff": "2026-10-24T12:30:00+01:00", "home": "Aston Villa", "away": "Man City", "p": [21.4, 22.8, 55.8], "tag": "pick", "take": "City unbeaten, Villa 12th." },
+    { "kickoff": "2026-10-24T15:00:00+01:00", "home": "Arsenal", "away": "Everton", "p": [68.5, 19.4, 12.1], "tag": "pick", "take": "Safest favourite; short odds, so best in an acca." },
+    { "kickoff": "2026-10-24T15:00:00+01:00", "home": "Coventry", "away": "Fulham", "p": [32.4, 26.6, 41.0], "tag": "skip", "take": "Coin flip." },
+    { "kickoff": "2026-10-24T17:30:00+01:00", "home": "Chelsea", "away": "Tottenham", "p": [55.3, 22.8, 21.9], "tag": "pick", "take": "Spurs' form makes Chelsea a solid favourite." },
+    { "kickoff": "2026-10-25T14:00:00+00:00", "home": "Crystal Palace", "away": "Newcastle", "p": [33.6, 26.1, 40.3], "tag": "skip", "take": "Both in poor form. Skip." },
+    { "kickoff": "2026-10-25T14:00:00+00:00", "home": "Hull", "away": "Brentford", "p": [21.4, 24.2, 54.4], "tag": "", "take": "Brentford favoured, but they draw a lot (4 in 7)." },
+    { "kickoff": "2026-10-25T14:00:00+00:00", "home": "Liverpool", "away": "Brighton", "p": [45.4, 25.2, 29.4], "tag": "", "take": "Brighton 3rd and scoring freely. Both teams to score appeals." },
+    { "kickoff": "2026-10-25T14:00:00+00:00", "home": "Man United", "away": "Bournemouth", "p": [52.0, 23.8, 24.2], "tag": "", "take": "United favoured but only 1 win in 7." }
+  ]
+}

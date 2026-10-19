@@ -12,6 +12,7 @@ import notes from "./notes.js";
 import trading from "./trading.js";
 import scanner from "./scanner.js";
 import botStatus from "./bot-status.js";
+import football from "./football.js";
 
 export default [
   welcome,
@@ -19,6 +20,7 @@ export default [
   trading,
   scanner,
   botStatus,
+  football,
   links,
   notes,
 ];
