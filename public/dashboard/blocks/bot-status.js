@@ -65,7 +65,7 @@ export default {
         ${["Railway", "MetaApi", "Bot"].map((g) => section(g, h.checks.filter((c) => (c.group || "Bot") === g))).join("")}
         ${h.notes.map((n) => `<div class="small" style="margin-top:8px;color:#d9a21b">⚠️ ${esc(n)}</div>`).join("")}
         <div class="small muted" style="margin-top:10px;line-height:1.5">
-          Up ${uptime(h.uptime_sec)} · ${h.stats.signals} signal${h.stats.signals === 1 ? "" : "s"} today${h.stats.errors ? ` · <span style="color:var(--danger)">${h.stats.errors} error${h.stats.errors === 1 ? "" : "s"}</span>` : ""}<br>
+          Up ${uptime(h.uptime_sec)} · ${h.stats.signals} signal${h.stats.signals === 1 ? "" : "s"} today${h.messages != null ? ` · ${h.messages} channel message${h.messages === 1 ? "" : "s"} read` : ""}${h.stats.errors ? ` · <span style="color:var(--danger)">${h.stats.errors} error${h.stats.errors === 1 ? "" : "s"}</span>` : ""}<br>
           Last signal: ${h.last_signal ? `${esc(h.last_signal.channel)}, ${esc(h.last_signal.ago)}` : "none since restart"}
         </div>`;
     }
