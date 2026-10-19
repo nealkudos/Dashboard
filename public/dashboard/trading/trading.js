@@ -127,42 +127,75 @@ function drawLive(d) {
   }
   lastBid = bid;
 
+  const ids = d.open.map((t) => `${t.key}-${t.leg}`).join("|");
   if (!d.open.length) {
     $("liveOpen").innerHTML = `<div class="empty">No open trades right now.</div>`;
-  } else {
+  } else if (ids !== shownIds) {
     $("liveOpen").innerHTML = d.open.map((t) => {
-      const p = pct(t), e = entryPct(t);
-      const toTp = t.tp != null ? Math.abs(t.tp - t.price).toFixed(2) : null;
-      const toSl = t.sl != null ? Math.abs(t.price - t.sl).toFixed(2) : null;
-      const id = `${t.key}-${t.leg}`;
-      const prev = pnlSeen[id];
-      const fl = prev == null || prev === t.pnl ? "" : t.pnl > prev ? " flash-up" : " flash-down";
-      pnlSeen[id] = t.pnl;
-      return `<div class="lt">
+      const e = entryPct(t);
+      return `<div class="lt" data-id="${esc(t.key + "-" + t.leg)}">
         <div class="lt-top">
           <div><b class="side-${t.side}">${t.side}</b> ${t.lots} lots <span class="tag">${esc(t.source)}</span></div>
-          <div class="p ${cls(t.pnl)}${fl}">${money(t.pnl)}</div>
+          <div class="p"></div>
         </div>
-        <div class="lt-sub">Entry ${t.entry} · now ${t.price}${toTp ? ` · ${toTp} to target` : ""}${toSl ? ` · ${toSl} to stop` : ""} · ${fmtT(t.opened)}</div>
-        ${p == null ? "" : `<div class="track" role="img" aria-label="Price between stop loss and target">
+        <div class="lt-sub"></div>
+        ${t.sl == null || t.tp == null || t.sl === t.tp ? "" : `<div class="track" role="img" aria-label="Price between stop loss and target">
             ${e != null && e > 0 && e < 1 ? `<span class="entry" style="left:${(e * 100).toFixed(1)}%"></span>` : ""}
-            <span class="now" style="left:${(p * 100).toFixed(1)}%"></span></div>
+            <span class="now"></span></div>
           <div class="track-l"><span>SL ${t.sl}</span><span>TP ${t.tp}</span></div>`}
       </div>`;
     }).join("");
   }
+  shownIds = d.open.length ? ids : "";
+  // Update numbers in place so the dot glides and nothing flickers
+  const rows = $("liveOpen").querySelectorAll(".lt");
+  d.open.forEach((t, i) => {
+    const row = rows[i];
+    if (!row) return;
+    const id = `${t.key}-${t.leg}`;
+    const prev = pnlSeen[id];
+    const pe = row.querySelector(".p");
+    pe.textContent = money(t.pnl);
+    pe.className = "p " + cls(t.pnl) + (prev == null || prev === t.pnl ? "" : t.pnl > prev ? " flash-up" : " flash-down");
+    pnlSeen[id] = t.pnl;
+    const toTp = t.tp != null ? Math.abs(t.tp - t.price).toFixed(2) : null;
+    const toSl = t.sl != null ? Math.abs(t.price - t.sl).toFixed(2) : null;
+    row.querySelector(".lt-sub").textContent = `Entry ${t.entry} · now ${t.price}${toTp ? ` · ${toTp} to target` : ""}${toSl ? ` · ${toSl} to stop` : ""} · ${fmtT(t.opened)}`;
+    const dot = row.querySelector(".now"), p = pct(t);
+    if (dot && p != null) dot.style.left = (p * 100).toFixed(1) + "%";
+  });
   $("livePend").innerHTML = d.pending.length
     ? `<div class="pend">${d.pending.map((o) => `<span>⏳ ${o.side === "BUY" ? "Buy" : "Sell"} ${o.kind} ${o.price} · ${esc(o.source)}</span>`).join("")}</div>`
     : "";
 }
 
+let shownIds = "", es = null, streaming = false;
+
+function gotLive(d) {
+  drawLive(d);
+  lastOk = Date.now();
+  $("liveDot").className = "dot on";
+}
+
+// Live stream from the bot: price and P/L arrive the moment they change.
+// If the stream can't connect, fall back to asking every 5 seconds.
+function openStream() {
+  if (!window.EventSource || es) return;
+  es = new EventSource("/api/trading-stream");
+  es.onmessage = (ev) => {
+    try { gotLive(JSON.parse(ev.data)); streaming = true; } catch {}
+  };
+  es.onerror = () => {
+    streaming = false;
+    if (es && es.readyState === EventSource.CLOSED) { es = null; setTimeout(openStream, 5000); }
+  };
+}
+function closeStream() { if (es) { es.close(); es = null; } streaming = false; }
+
 async function liveTick() {
-  if (document.visibilityState !== "visible") return;
+  if (document.visibilityState !== "visible" || streaming) return;
   try {
-    const d = await fetchLive();
-    drawLive(d);
-    lastOk = Date.now();
-    $("liveDot").className = "dot on";
+    gotLive(await fetchLive());
   } catch (e) {
     $("liveDot").className = "dot";
     if (!lastOk) $("liveOpen").innerHTML = `<div class="empty">⚠️ ${esc(e.message)}</div>`;
@@ -171,11 +204,14 @@ async function liveTick() {
 setInterval(() => {
   if (!lastOk) return;
   const s = Math.round((Date.now() - lastOk) / 1000);
-  $("liveAge").textContent = s > 20 ? `Last update ${s}s ago — reconnecting…` : "Updates every 5 seconds";
+  $("liveAge").textContent = s > 20 ? `Last update ${s}s ago — reconnecting…` : streaming ? "Live · streaming" : "Updates every 5 seconds";
   if (s > 20) $("liveDot").className = "dot";
 }, 1000);
-document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") { liveTick(); load(); } });
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") { openStream(); liveTick(); load(); } else closeStream();
+});
 
+openStream();
 liveTick();
 setInterval(liveTick, 5000);
 load();
