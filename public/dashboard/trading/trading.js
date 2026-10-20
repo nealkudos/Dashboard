@@ -173,6 +173,8 @@ let shownIds = "", es = null, streaming = false;
 
 function gotLive(d) {
   drawLive(d);
+  $("liveOpen").style.opacity = "";
+  $("livePend").style.opacity = "";
   lastOk = Date.now();
   $("liveDot").className = "dot on";
 }
@@ -207,9 +209,28 @@ setInterval(() => {
   $("liveAge").textContent = s > 20 ? `Last update ${s}s ago — reconnecting…` : streaming ? "Live · streaming" : "Updates every 5 seconds";
   if (s > 20) $("liveDot").className = "dot";
 }, 1000);
+// iPhone Safari freezes background pages (sometimes without telling us). On coming back:
+// grey out anything older than 15s straight away, drop the old stream and fetch fresh.
+let resumedAt = 0;
+function resume() {
+  if (Date.now() - resumedAt < 1000) return;
+  resumedAt = Date.now();
+  if (Date.now() - lastOk > 15000) {
+    $("liveDot").className = "dot";
+    $("liveAge").textContent = "Updating…";
+    $("liveOpen").style.opacity = ".45";
+    $("livePend").style.opacity = ".45";
+  }
+  closeStream(); openStream(); liveTick(); load();
+}
 document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState === "visible") { openStream(); liveTick(); load(); } else closeStream();
+  if (document.visibilityState === "visible") resume(); else closeStream();
 });
+window.addEventListener("pageshow", (e) => { if (e.persisted) resume(); });
+window.addEventListener("focus", resume);
+// If timers were frozen, this catches the first tick after waking
+let lastTick = Date.now();
+setInterval(() => { if (Date.now() - lastTick > 10000) resume(); lastTick = Date.now(); }, 2000);
 
 openStream();
 liveTick();
