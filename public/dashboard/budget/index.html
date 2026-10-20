@@ -56,14 +56,13 @@
         <div id="cats"></div>
       </section>
       <section class="card">
-        <h3>Bank accounts</h3>
+        <h3>Accounts</h3>
         <div id="banks"></div>
-        <form id="connect" class="connect">
-          <input id="bank-search" list="bank-list" placeholder="Search for your bank, e.g. Monzo" autocomplete="off">
-          <datalist id="bank-list"></datalist>
-          <button type="submit">Connect</button>
-        </form>
-        <p class="muted small" style="margin:8px 0 0">Read-only access through Open Banking (Enable Banking). Banks ask you to re-approve every 90–180 days.</p>
+        <div class="acct-actions">
+          <button type="button" id="connect-monzo">Connect Monzo</button>
+          <button type="button" class="ghost" id="upload">Upload statement</button>
+        </div>
+        <p class="muted small" style="margin:8px 0 0">Monzo updates live. For Nationwide and Amex, download a CSV statement from their website or app and upload it here — once a week is plenty.</p>
       </section>
     </div>
 

@@ -14,15 +14,17 @@ export default {
       try { d = await ctx.api("/api/budget/summary"); }
       catch (e) { el.innerHTML = `<div class="small muted">⚠️ ${esc(e.message)}</div>`; return; }
       const monthName = new Date(d.month + "-01T12:00:00").toLocaleDateString("en-GB", { month: "long" });
-      if (!d.connections.length) {
-        el.innerHTML = `<div class="small muted">${d.configured ? "No banks connected yet." : "Bank linking isn't set up yet."}</div>
+      if (!d.accounts.length) {
+        el.innerHTML = `<div class="small muted">No accounts yet — connect Monzo or upload a statement.</div>
           <a href="/dashboard/budget/" class="link small" style="display:inline-block;margin-top:8px;color:var(--accent);font-weight:600;text-decoration:none">Open budget →</a>`;
         return;
       }
       const t = d.totals;
       const top = d.categories.slice(0, 4);
       const max = Math.max(...top.map((c) => c.budget || c.spent), 1);
-      const expiring = d.connections.filter((c) => c.days_left < 7);
+      const today = new Date().toLocaleDateString("en-CA");
+      const stale = d.accounts.filter((a) => a.source === "upload" && a.latest && (Date.parse(today) - Date.parse(a.latest)) / 86400000 > 10);
+      const monzoNeeds = d.monzo.connected && d.monzo.waiting;
       el.innerHTML = `
         <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px">
           <div><div class="small muted">In · ${esc(monthName)}</div><div style="font-size:20px;font-weight:650;color:var(--ok)">${gbp(t.income)}</div></div>
@@ -38,7 +40,8 @@ export default {
                 <i style="display:block;height:100%;width:${Math.min(100, (c.spent / (c.budget || max)) * 100)}%;background:${over ? "var(--danger)" : "var(--accent)"}"></i></div></div>`;
           }).join("") || `<div class="small muted">No spending yet this month.</div>`}
         </div>
-        ${expiring.map((c) => `<div class="small" style="margin-top:8px;color:var(--danger)">⚠️ ${esc(c.bank)} access ${c.days_left < 0 ? "has expired" : `expires in ${c.days_left} days`} — reconnect</div>`).join("")}
+        ${stale.length ? `<div class="small" style="margin-top:8px;color:#d9a21b">Upload a new statement: ${stale.map((a) => esc(a.bank)).join(", ")}</div>` : ""}
+        ${monzoNeeds ? `<div class="small" style="margin-top:8px;color:#d9a21b">Monzo is waiting for approval in the app</div>` : ""}
         <a href="/dashboard/budget/" style="display:inline-block;margin-top:10px;color:var(--accent);font-weight:600;font-size:14px;text-decoration:none">Open budget →</a>`;
     }
     ctx.every(10 * 60 * 1000, draw);

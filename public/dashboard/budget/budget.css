@@ -20,9 +20,16 @@
 .bank .hd b { flex: 1; }
 .bank .acc { display: flex; justify-content: space-between; font-size: 14px; color: var(--muted); padding: 3px 0 0 2px; font-variant-numeric: tabular-nums; }
 .bank .exp { font-size: 12px; }
-.connect { display: flex; gap: 8px; margin-top: 12px; }
-.connect input { padding: 9px 11px; font-size: 15px; }
-.connect button { padding: 9px 14px; flex: none; }
+.acct-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+.acct-actions button { padding: 9px 14px; }
+.stale { color: #d9a21b; }
+.dlg select, .dlg input[type=text] { width: 100%; padding: 9px 11px; font: inherit; font-size: 15px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); color: var(--text); }
+.dlg .fld { margin-top: 10px; }
+.dlg .fld > span { display: block; font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+.prev { margin-top: 12px; border: 1px solid var(--line); border-radius: 10px; padding: 4px 10px; max-height: 220px; overflow: auto; }
+.prev .tx { padding: 6px 0; }
+.drop { margin-top: 10px; border: 1.5px dashed var(--line); border-radius: 12px; padding: 18px; text-align: center; color: var(--muted); cursor: pointer; }
+.drop.on { border-color: var(--accent); color: var(--text); }
 
 .tx-tools { display: flex; gap: 8px; margin-bottom: 6px; }
 .tx-tools input, .tx-tools select { padding: 8px 10px; font-size: 15px; }

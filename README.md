@@ -56,14 +56,12 @@ to any page that loads it and has a `.theme-btn` button.
 
 ## Budget tracker
 
-`/dashboard/budget/` (plus a **Budget** block) shows money in, spending by category against monthly budgets, and every transaction. Data comes read-only from your banks through [Enable Banking](https://enablebanking.com) (Open Banking):
+`/dashboard/budget/` (plus a **Budget** block) shows money in, spending by category against monthly budgets, and every transaction.
 
-1. enablebanking.com → sign in → **API applications → Add a new application**, environment **Production**, redirect URL `https://nealchauhan.co.uk/bank-callback`. Save the downloaded `.pem` file.
-2. On the new app press **Activate by linking accounts** and link one of your accounts (this puts it in "restricted" mode — your own accounts only, meant for personal non-commercial use).
-3. Cloudflare → the Pages project → Settings → Variables and secrets: `EB_APP_ID` (the app ID) and `EB_PRIVATE_KEY` (**Secret**, paste the whole .pem file). Redeploy.
-4. On the Budget page, search for each bank and press **Connect**.
+- **Monzo — live.** developers.monzo.com → sign in → **Clients → New OAuth Client**: Confidential **Yes**, redirect URL `https://nealchauhan.co.uk/monzo-callback`. In Cloudflare add `MONZO_CLIENT_ID` and `MONZO_CLIENT_SECRET` (**Secret**), redeploy, then press **Connect Monzo** on the Budget page and approve in the Monzo app. History is pulled straight away (Monzo only allows the last 90 days after the first 5 minutes); after that it tops up whenever the page is opened.
+- **Nationwide, Amex and others — statement upload.** Download a CSV from the bank's website/app and use **Upload statement**. The file is read in the browser first so you can check money in/out before importing; uploading overlapping statements never duplicates anything.
 
-Banks ask you to re-approve access every 90–180 days; the block warns a week before. Transactions sync when you open the page (at most every 6 hours, as banks limit how often apps can read). Transfers between your own accounts and card repayments are spotted and left out of the totals. Tap any transaction's category to change it — "always" remembers it for that shop.
+Transfers between your own accounts and card repayments are matched and left out of the totals. Tap a transaction's category to change it — "always" remembers it for that shop.
 
 ## Files
 
