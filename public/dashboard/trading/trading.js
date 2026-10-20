@@ -135,7 +135,7 @@ function drawLive(d) {
       const e = entryPct(t);
       return `<div class="lt" data-id="${esc(t.key + "-" + t.leg)}">
         <div class="lt-top">
-          <div><b class="side-${t.side}">${t.side}</b> ${t.lots} lots <span class="tag">${esc(t.source)}</span></div>
+          <div><b class="side-${t.side}">${t.side}</b>${t.symbol && !/^XAU/i.test(t.symbol) ? ` <b>${esc(t.symbol)}</b>` : ""} ${t.lots} lots <span class="tag">${esc(t.source)}</span></div>
           <div class="p"></div>
         </div>
         <div class="lt-sub"></div>
@@ -165,7 +165,7 @@ function drawLive(d) {
     if (dot && p != null) dot.style.left = (p * 100).toFixed(1) + "%";
   });
   $("livePend").innerHTML = d.pending.length
-    ? `<div class="pend">${d.pending.map((o) => `<span>⏳ ${o.side === "BUY" ? "Buy" : "Sell"} ${o.kind} ${o.price} · ${esc(o.source)}</span>`).join("")}</div>`
+    ? `<div class="pend">${d.pending.map((o) => `<span>⏳ ${o.side === "BUY" ? "Buy" : "Sell"}${o.symbol && !/^XAU/i.test(o.symbol) ? " " + esc(o.symbol) : ""} ${o.kind} ${o.price} · ${esc(o.source)}</span>`).join("")}</div>`
     : "";
 }
 
