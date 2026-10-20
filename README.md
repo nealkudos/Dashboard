@@ -59,7 +59,7 @@ to any page that loads it and has a `.theme-btn` button.
 `/dashboard/budget/` (plus a **Budget** block) shows money in, spending by category against monthly budgets, and every transaction. Data comes read-only from your banks through [Enable Banking](https://enablebanking.com) (Open Banking):
 
 1. enablebanking.com → sign in → **API applications → Add a new application**, environment **Production**, redirect URL `https://nealchauhan.co.uk/bank-callback`. Save the downloaded `.pem` file.
-2. On the new app press **Activate by linking accounts** and link one of your accounts (this puts it in free "restricted" mode — your own accounts only).
+2. On the new app press **Activate by linking accounts** and link one of your accounts (this puts it in "restricted" mode — your own accounts only, meant for personal non-commercial use).
 3. Cloudflare → the Pages project → Settings → Variables and secrets: `EB_APP_ID` (the app ID) and `EB_PRIVATE_KEY` (**Secret**, paste the whole .pem file). Redeploy.
 4. On the Budget page, search for each bank and press **Connect**.
 
