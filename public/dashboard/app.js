@@ -70,6 +70,7 @@ const DEFAULTS = {
   links:    { x: 3, y: 11, w: 3, h: 6 },
   "bot-status": { x: 6, y: 13, w: 3, h: 8 },
   notes:    { x: 9, y: 13, w: 3, h: 8 },
+  budget:   { w: 6, h: 8, autoPosition: true },
 };
 const SIZE_DEFAULT = { s: { w: 3, h: 6 }, m: { w: 6, h: 6 }, l: { w: 12, h: 6 } };
 

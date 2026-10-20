@@ -54,6 +54,17 @@ to any page that loads it and has a `.theme-btn` button.
 
 "Upcoming" shows the next 14 days from any number of calendars. On the dashboard tap **Calendars** under the block and paste each calendar's private iCal link (the block explains where to find them for Apple, Google and Outlook). Links are stored server-side only; feeds are re-fetched at most every 10 minutes.
 
+## Budget tracker
+
+`/dashboard/budget/` (plus a **Budget** block) shows money in, spending by category against monthly budgets, and every transaction. Data comes read-only from your banks through [Enable Banking](https://enablebanking.com) (Open Banking):
+
+1. enablebanking.com → sign in → **API applications → Add a new application**, environment **Production**, redirect URL `https://nealchauhan.co.uk/bank-callback`. Save the downloaded `.pem` file.
+2. On the new app press **Activate by linking accounts** and link one of your accounts (this puts it in free "restricted" mode — your own accounts only).
+3. Cloudflare → the Pages project → Settings → Variables and secrets: `EB_APP_ID` (the app ID) and `EB_PRIVATE_KEY` (**Secret**, paste the whole .pem file). Redeploy.
+4. On the Budget page, search for each bank and press **Connect**.
+
+Banks ask you to re-approve access every 90–180 days; the block warns a week before. Transactions sync when you open the page (at most every 6 hours, as banks limit how often apps can read). Transfers between your own accounts and card repayments are spotted and left out of the totals. Tap any transaction's category to change it — "always" remembers it for that shop.
+
 ## Files
 
 ```

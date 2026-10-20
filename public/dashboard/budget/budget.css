@@ -1,0 +1,50 @@
+/* Budget page — builds on trading.css (tiles, cards, banners) */
+.month-nav { display: flex; align-items: center; gap: 8px; }
+.month { font-size: 22px; font-weight: 650; letter-spacing: -.01em; min-width: 170px; text-align: center; }
+.sync-row { display: flex; align-items: center; gap: 10px; }
+.banner.ok-b { background: color-mix(in srgb, var(--ok) 12%, var(--surface)); border: 1px solid var(--ok); padding: 12px 14px; border-radius: 12px; margin-bottom: 12px; }
+
+.cat { padding: 8px 0; border-bottom: 1px solid var(--line); cursor: pointer; }
+.cat:last-child { border-bottom: 0; }
+.cat .row { display: flex; align-items: baseline; gap: 10px; }
+.cat .nm { flex: 1; font-weight: 550; }
+.cat .amt { font-weight: 650; font-variant-numeric: tabular-nums; }
+.cat .of { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.meter { height: 6px; border-radius: 3px; background: var(--surface-2); overflow: hidden; margin-top: 6px; }
+.meter i { display: block; height: 100%; border-radius: 3px; background: var(--accent); }
+.meter i.warn { background: #d9a21b; } .meter i.over { background: var(--danger); }
+.cat.on .nm { color: var(--accent); }
+
+.bank { padding: 8px 0; border-bottom: 1px solid var(--line); }
+.bank .hd { display: flex; align-items: center; gap: 8px; }
+.bank .hd b { flex: 1; }
+.bank .acc { display: flex; justify-content: space-between; font-size: 14px; color: var(--muted); padding: 3px 0 0 2px; font-variant-numeric: tabular-nums; }
+.bank .exp { font-size: 12px; }
+.connect { display: flex; gap: 8px; margin-top: 12px; }
+.connect input { padding: 9px 11px; font-size: 15px; }
+.connect button { padding: 9px 14px; flex: none; }
+
+.tx-tools { display: flex; gap: 8px; margin-bottom: 6px; }
+.tx-tools input, .tx-tools select { padding: 8px 10px; font-size: 15px; }
+.tx-tools select { width: auto; flex: none; font: inherit; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); color: var(--text); }
+.day { font-size: 12px; font-weight: 650; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); margin: 14px 0 2px; }
+.tx { display: grid; grid-template-columns: 1fr auto; gap: 1px 10px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.tx:last-child { border-bottom: 0; }
+.tx .d { font-weight: 550; min-width: 0; overflow-wrap: anywhere; }
+.tx .a { font-weight: 650; text-align: right; font-variant-numeric: tabular-nums; }
+.tx .m { font-size: 12px; color: var(--muted); display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.tx .catbtn { font-size: 12px; padding: 2px 8px; border-radius: 999px; background: var(--surface-2); color: var(--text); font-weight: 500; border: 0; }
+.tx.transfer { opacity: .55; }
+
+.dlg { border: 1px solid var(--line); border-radius: 16px; background: var(--surface); color: var(--text); padding: 18px; width: min(420px, calc(100vw - 32px)); box-shadow: var(--shadow); }
+.dlg::backdrop { background: rgba(0,0,0,.45); }
+.dlg h3 { font-size: 17px; margin: 0 0 4px; color: var(--text); }
+.dlg .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 12px; }
+.dlg .grid2 button { background: var(--surface-2); color: var(--text); font-weight: 500; padding: 9px; }
+.dlg .grid2 button.on { background: var(--accent); color: var(--accent-ink); }
+.dlg .brow { display: flex; align-items: center; gap: 10px; padding: 4px 0; }
+.dlg .brow span { flex: 1; }
+.dlg .brow input { width: 110px; padding: 7px 9px; font-size: 15px; text-align: right; }
+.dlg .actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 14px; }
+.dlg label.chk { display: flex; gap: 8px; align-items: center; margin-top: 12px; color: var(--text); font-size: 14px; }
+.dlg label.chk input { width: auto; }

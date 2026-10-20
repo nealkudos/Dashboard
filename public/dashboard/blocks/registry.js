@@ -12,6 +12,7 @@ import notes from "./notes.js";
 import trading from "./trading.js";
 import scanner from "./scanner.js";
 import botStatus from "./bot-status.js";
+import budget from "./budget.js";
 import football from "./football.js";
 
 export default [
@@ -20,6 +21,7 @@ export default [
   trading,
   scanner,
   botStatus,
+  budget,
   football,
   links,
   notes,
