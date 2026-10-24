@@ -62,6 +62,10 @@ const find = (head, re) => head.findIndex((h) => re.test(h));
 
 /** Returns { rows:[{date, amount, desc, note}], balance, from, to, hasInOut, columns } or throws. */
 export async function readStatement(file, preset) {
+  if (/\.pdf$/i.test(file.name) || file.type === "application/pdf") {
+    const { readPdfStatement } = await import("./statements-pdf.js");
+    return readPdfStatement(file, preset);
+  }
   const text = decode(await file.arrayBuffer());
   const all = parseCsv(text);
   // The header row is the first one with a date column and some money column

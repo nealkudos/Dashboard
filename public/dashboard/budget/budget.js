@@ -450,7 +450,7 @@ $("add").onclick = () => {
 function openSettings() {
   const d = $("dlg");
   const today = todayStr();
-  d.innerHTML = `<h3>Accounts</h3><div class="muted small">Monzo updates by itself. For Nationwide and Amex, upload a CSV statement every week or so.</div>
+  d.innerHTML = `<h3>Accounts</h3><div class="muted small">Monzo updates by itself. For Nationwide and Amex, upload a PDF or CSV statement every week or so.</div>
     <div style="margin-top:8px">${data.accounts.map((a) => {
       let st = "";
       if (a.source === "monzo") st = data.monzo.waiting ? "approve in the Monzo app" : data.monzo.connected ? `live${data.monzo.last_sync ? ` · synced ${new Date(data.monzo.last_sync).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}` : ""}` : "disconnected";
@@ -473,8 +473,9 @@ function openSettings() {
   d.querySelector("#s-sync")?.addEventListener("click", () => { d.close(); sync(true); });
   d.querySelectorAll("[data-up]").forEach((b) => (b.onclick = () => upload(b.dataset.up)));
   d.querySelectorAll("[data-rm]").forEach((b) => (b.onclick = async () => {
-    if (!confirm(`Remove ${b.dataset.n}? Its transactions already here stay.`)) return;
-    try { await api(`/api/budget/account/${b.dataset.rm}`, { method: "DELETE" }); await load(); openSettings(); } catch (e) { alert(e.message); }
+    if (!confirm(`Remove ${b.dataset.n}?`)) return;
+    const purge = confirm(`Also delete all of its transactions?\n\nOK = delete them · Cancel = keep them`);
+    try { await api(`/api/budget/account/${b.dataset.rm}${purge ? "?purge=1" : ""}`, { method: "DELETE" }); await load(); openSettings(); } catch (e) { alert(e.message); }
   }));
   if (!d.open) d.showModal();
 }
@@ -506,13 +507,13 @@ function upload(acctKey) {
   const d = $("dlg");
   const ups = data.accounts.filter((a) => a.source === "upload");
   d.innerHTML = `<h3>Upload a statement</h3>
-    <div class="muted small">CSV file from your bank's website or app. It's read on this device first so you can check it.</div>
+    <div class="muted small">PDF or CSV statement from your bank's app or website. It's read on this device first so you can check it.</div>
     <label class="fld"><span>Which account?</span><select id="u-acct">
       ${ups.map((a) => `<option value="${esc(a.key)}">${esc(a.bank)} ${esc(a.name)}${a.mask ? ` ••${esc(a.mask)}` : ""}</option>`).join("")}
       ${PRESETS.map((p) => `<option value="new:${p.id}">New: ${esc(p.bank)} ${esc(p.name)}</option>`).join("")}
     </select></label>
     <label class="fld" id="u-name-wrap" hidden><span>Name it (e.g. "Credit card", "Joint")</span><input type="text" id="u-name" maxlength="40"></label>
-    <div class="drop" id="u-drop">Tap to choose a CSV file, or drop it here<input type="file" id="u-file" accept=".csv,text/csv" hidden></div>
+    <div class="drop" id="u-drop">Tap to choose a PDF or CSV statement<input type="file" id="u-file" accept=".pdf,application/pdf,.csv,text/csv" hidden></div>
     <div id="u-prev"></div>
     <div class="actions"><button class="ghost" type="button" id="x">Cancel</button><button type="button" id="u-go" disabled>Import</button></div>`;
   const sel = d.querySelector("#u-acct"), nameWrap = d.querySelector("#u-name-wrap"), nameIn = d.querySelector("#u-name");
@@ -531,6 +532,7 @@ function upload(acctKey) {
   const fmt = (x) => fmtDay(x, { day: "numeric", month: "short", year: "numeric" });
   async function readIt() {
     if (!file) return;
+    prev.innerHTML = `<p class="small muted" style="margin-top:10px">Reading ${esc(file.name)}…</p>`; go2.disabled = true;
     try {
       parsed = await readStatement(file, preset());
       if (flip) parsed.rows.forEach((r) => (r.amount = -r.amount));

@@ -124,3 +124,30 @@ export async function mergeTransactions(env, fresh) {
   }
   return added;
 }
+
+/** Remove an account and every transaction it brought in; anything it was paired with as a transfer is un-paired. */
+export async function purgeAccount(env, key) {
+  const accounts = await getAccounts(env);
+  await putAccounts(env, accounts.filter((a) => a.key !== key));
+  const list = await kv(env).list({ prefix: "bt:" });
+  let removed = 0;
+  for (const k of list.keys) {
+    const txs = (await kv(env).get(k.name, "json")) || [];
+    const keep = txs.filter((t) => t.acct !== key);
+    if (keep.length !== txs.length) { removed += txs.length - keep.length; await putMonth(env, k.name.slice(3), keep); }
+  }
+  // Pairs can span neighbouring months: drop any pair that now points at nothing
+  const ids = new Set();
+  const months = {};
+  for (const k of list.keys) { months[k.name] = (await kv(env).get(k.name, "json")) || []; months[k.name].forEach((t) => ids.add(t.id)); }
+  for (const [name, txs] of Object.entries(months)) {
+    let changed = false;
+    for (const t of txs) if (t.pair && !ids.has(t.pair)) { delete t.pair; t.auto = autoCategory(t); changed = true; }
+    if (changed) await putMonth(env, name.slice(3), txs);
+  }
+  const b = await getBudget(env);
+  if (b.balances[key]) { delete b.balances[key]; await putBudget(env, b); }
+  const latest = (await kv(env).get("budget:latest", "json")) || {};
+  if (latest[key]) { delete latest[key]; await kv(env).put("budget:latest", JSON.stringify(latest)); }
+  return removed;
+}

@@ -4,7 +4,7 @@
 //   MONZO_API_URL / MONZO_AUTH_URL  optional overrides, only used for local testing
 import { kv } from "./core.js";
 import { randomId, sha256Hex } from "./crypto.js";
-import { getAccounts, putAccounts, getBudget, putBudget, makeTx, mergeTransactions } from "./budget.js";
+import { getAccounts, putAccounts, purgeAccount, getBudget, putBudget, makeTx, mergeTransactions } from "./budget.js";
 
 const api = (env) => (env.MONZO_API_URL || "https://api.monzo.com").replace(/\/+$/, "");
 const authBase = (env) => (env.MONZO_AUTH_URL || "https://auth.monzo.com").replace(/\/+$/, "");
@@ -101,7 +101,7 @@ export async function syncMonzo(env, { force = false } = {}) {
   try {
     // Accounts (current + joint)
     const list = (await mz(env, st, "/accounts")).accounts || [];
-    const mine = list.filter((a) => !a.closed && /uk_retail/.test(a.type || ""));
+    const mine = list.filter((a) => !a.closed && a.type === "uk_retail");   // personal current account only (no joint)
     const accounts = await getAccounts(env);
     st.accounts = [];
     for (const a of mine) {
@@ -112,6 +112,8 @@ export async function syncMonzo(env, { force = false } = {}) {
       if (!accounts.some((x) => x.key === key)) accounts.push({ key, name, bank: "Monzo", source: "monzo", mask });
     }
     await putAccounts(env, accounts);
+    // Any Monzo account we no longer sync (e.g. the joint account) goes, along with its transactions
+    for (const old of accounts.filter((x) => x.source === "monzo" && !st.accounts.some((a) => a.key === x.key))) await purgeAccount(env, old.key);
 
     const budget = await getBudget(env);
     let added = 0;

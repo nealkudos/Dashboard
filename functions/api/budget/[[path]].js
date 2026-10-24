@@ -13,7 +13,7 @@ import { json, fail, readJson, sameOrigin, kv } from "../../_lib/core.js";
 import { randomId } from "../../_lib/crypto.js";
 import {
   getAccounts, putAccounts, getBudget, putBudget, getMonth, putMonth, makeTx, mergeTransactions,
-  categoryOf, merchantKey, CATEGORIES,
+  categoryOf, merchantKey, CATEGORIES, purgeAccount,
 } from "../../_lib/budget.js";
 import { monzoConfigured, monzoConnectUrl, syncMonzo, monzoStatus, monzoDisconnect } from "../../_lib/monzo.js";
 
@@ -174,14 +174,7 @@ async function removeAccount(request, env, key) {
   if (!acct) return fail("Not found", 404);
   await putAccounts(env, accounts.filter((a) => a.key !== key));
   if (acct.source === "monzo" && !accounts.some((a) => a.key !== key && a.source === "monzo")) await monzoDisconnect(env);
-  if (new URL(request.url).searchParams.get("purge") === "1") {
-    const list = await kv(env).list({ prefix: "bt:" });
-    for (const k of list.keys) {
-      const txs = (await kv(env).get(k.name, "json")) || [];
-      const keep = txs.filter((t) => t.acct !== key);
-      if (keep.length !== txs.length) await putMonth(env, k.name.slice(3), keep);
-    }
-  }
+  if (new URL(request.url).searchParams.get("purge") === "1") await purgeAccount(env, key);
   return json({ ok: true });
 }
 
