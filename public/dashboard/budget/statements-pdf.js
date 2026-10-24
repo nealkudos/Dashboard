@@ -108,16 +108,19 @@ export async function readPdfStatement(file, preset) {
   if (allText.replace(/\s/g, "").length < 40) throw new Error("This PDF has no readable text (it may be a scan or a photo). Download the statement from your bank's app or website instead.");
   const end = statementEnd(allText);
   // Card statements list purchases as positive numbers
-  const card = preset.spendPositive || /credit card/i.test(preset.name || "") || /credit card|credit limit|minimum payment/i.test(allText.slice(0, 4000));
+  // (a statement with separate Out / In columns is a bank account, whatever it mentions)
+  const cardHint = preset.spendPositive || /credit card/i.test(preset.name || "") || /credit limit|minimum payment/i.test(allText.slice(0, 4000));
 
   const rows = [];
   let cols = null;            // {out, in, balance, amount} -> right-edge x of each column heading
-  let lastDate = null, pending = [], lastBal = null, closing = null, hasInOut = false, sawBalanceCol = false;
+  let lastDate = null, pending = [], lastBal = null, runBal = null, justAdded = false, closing = null, hasInOut = false, sawBalanceCol = false;
 
   for (const lines of pages) {
     for (const line of lines) {
       const t = line.text;
       const low = t.toLowerCase();
+      const wasAdded = justAdded;
+      justAdded = false;
 
       // Column headings (repeated on each page)
       if (/\bdate\b/.test(low) && /(paid out|money out|£ ?out|\bout\b|withdrawal|debit|paid in|money in|\bin\b|deposit|credit|amount|balance)/.test(low) && !leadingDate(t)) {
@@ -143,7 +146,7 @@ export async function readPdfStatement(file, preset) {
         if (money.length) {
           const v = parseMoney(money[money.length - 1].s.replace(/\s?CR$/i, ""));
           const isOd = /DR$/i.test(money[money.length - 1].s);
-          if (v !== null) { lastBal = isOd ? -Math.abs(v) : v; if (BAL_LINE.test(low)) closing = lastBal; }
+          if (v !== null) { lastBal = runBal = isOd ? -Math.abs(v) : v; if (BAL_LINE.test(low)) closing = lastBal; }
         }
         if (dt) lastDate = toIso(dt, end);
         pending = [];
@@ -153,6 +156,13 @@ export async function readPdfStatement(file, preset) {
       if (!money.length) {
         // A description line on its own (some banks wrap long descriptions, or put the date on the first line only)
         if (dt) { lastDate = toIso(dt, end); const rest = t.slice(dt.len).trim(); pending = rest ? [rest] : []; }
+        else if (wasAdded && !pending.length && t.length < 80) {
+          // Nationwide puts extra detail on the line underneath ("Salary", "APPLEPAY ****1234")
+          const last = rows[rows.length - 1];
+          last.note = [last.note, t].filter(Boolean).join(" · ").slice(0, 120);
+          justAdded = true;
+          continue;
+        }
         else if (lastDate && t.length < 80 && rows.length + pending.length > 0) pending.push(t);
         if (pending.length > 3) pending = pending.slice(-3);
         continue;
@@ -193,12 +203,14 @@ export async function readPdfStatement(file, preset) {
       else if (amt !== null) {
         // Card statements: purchases are positive, refunds/payments are marked CR or with a minus sign
         const crFlag = money.some((i) => /CR$/i.test(i.s));
-        if (card) amount = crFlag || amt < 0 ? Math.abs(amt) : -amt;
+        if (cardHint && !hasInOut) amount = crFlag || amt < 0 ? Math.abs(amt) : -amt;
         else amount = crFlag ? Math.abs(amt) : amt;
       } else continue;
 
       // A running balance is the most reliable guide to direction
-      if (bal !== null && lastBal !== null && Math.abs(Math.abs(bal - lastBal) - Math.abs(amount)) < 0.005) amount = Math.round((bal - lastBal) * 100) / 100;
+      // (only when the row before also had a balance, so the difference is this one transaction)
+      if (bal !== null && runBal !== null && Math.abs(Math.abs(bal - runBal) - Math.abs(amount)) < 0.005) amount = Math.round((bal - runBal) * 100) / 100;
+      runBal = bal;
       if (bal !== null) lastBal = bal;
       if (!amount) continue;
 
@@ -214,11 +226,12 @@ export async function readPdfStatement(file, preset) {
       const note = own && pending.length ? pending.join(" ") : "";
       rows.push({ date, amount: Math.round(amount * 100) / 100, desc: desc.slice(0, 120), note: note.slice(0, 120) });
       pending = [];
+      justAdded = true;
     }
   }
 
   if (!rows.length) throw new Error("Couldn't find any transactions in that PDF. If it keeps happening, send me the statement layout to tune it.");
   const dates = rows.map((r) => r.date).sort();
-  const balance = card ? null : (closing ?? (sawBalanceCol ? lastBal : null));
+  const balance = cardHint && !hasInOut ? null : (closing ?? (sawBalanceCol ? lastBal : null));
   return { rows, balance, from: dates[0], to: dates[dates.length - 1], hasInOut, pdf: true };
 }
