@@ -13,7 +13,7 @@ import { json, fail, readJson, sameOrigin, kv } from "../../_lib/core.js";
 import { randomId } from "../../_lib/crypto.js";
 import {
   getAccounts, putAccounts, getBudget, putBudget, getMonth, putMonth, makeTx, mergeTransactions,
-  categoryOf, merchantKey, CATEGORIES, purgeAccount,
+  categoryOf, merchantKey, CATEGORIES, purgeAccount, clearAccountRange,
 } from "../../_lib/budget.js";
 import { monzoConfigured, monzoConnectUrl, syncMonzo, monzoStatus, monzoDisconnect } from "../../_lib/monzo.js";
 
@@ -122,7 +122,10 @@ async function importRows(request, env) {
     if (date > latest) latest = date;
   }
   if (!txs.length) return fail("Couldn't read any transactions from that file.");
-  const added = await mergeTransactions(env, txs);
+  // Re-uploading a statement replaces what an earlier upload of the same dates put there (so fixes to the reader take effect)
+  const dates = txs.map((t) => t.date).sort();
+  const cleared = await clearAccountRange(env, acct.key, dates[0], dates[dates.length - 1]);
+  const added = Math.max(0, (await mergeTransactions(env, txs)) - cleared);
 
   const budget = await getBudget(env);
   if (isFinite(Number(body.balance)) && body.balance !== null && body.balance !== "") {

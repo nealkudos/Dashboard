@@ -47,7 +47,10 @@ async function pdfLines(file) {
       const merged = [];
       for (const it of l.items) {
         const prev = merged[merged.length - 1];
-        if (prev && it.x - prev.r < 1.5 && !(MONEY.test(prev.s) && MONEY.test(it.s))) { prev.s += it.s; prev.r = it.r; }
+        const gap = prev ? it.x - prev.r : 99;
+        // Some PDFs (Nationwide) give every letter separately: touching letters make a word, a small gap is a space
+        if (prev && gap < 0.8 && gap > -2 && !(MONEY.test(prev.s) && MONEY.test(it.s))) { prev.s += it.s; prev.r = it.r; }
+        else if (prev && gap >= 0.8 && gap < 4 && !MONEY.test(it.s) && !MONEY.test(prev.s)) { prev.s += " " + it.s; prev.r = it.r; }
         else if (prev && /^(CR|DR)$/i.test(it.s) && MONEY.test(prev.s) && it.x - prev.r < 12) { prev.s += " " + it.s; prev.r = it.r; }
         else merged.push({ ...it });
       }
@@ -63,7 +66,7 @@ async function pdfLines(file) {
 // A date at the start of a line: "05 Oct", "5 Oct 2026", "05/10/2026", "05/10/26", "Oct 05", "05.10.26"
 function leadingDate(text) {
   let m;
-  if ((m = text.match(new RegExp(`^(\\d{1,2})(?:st|nd|rd|th)?[\\s.-]+${MON}\\.?(?:[\\s.-]+(\\d{4}|\\d{2}))?\\b`, "i")))) {
+  if ((m = text.match(new RegExp(`^(\\d{1,2})(?:st|nd|rd|th)?[\\s.-]*${MON}\\.?(?:[\\s.-]+(\\d{4}|\\d{2}))?\\b`, "i")))) {   // "28 Aug" or "28Aug"
     return { d: +m[1], m: MONTHS[m[2].slice(0, 3).toLowerCase()], y: yy(m[3]), len: m[0].length };
   }
   if ((m = text.match(new RegExp(`^${MON}\\.?\\s+(\\d{1,2})(?:,?\\s+(\\d{4}))?\\b`, "i")))) {
@@ -113,27 +116,45 @@ export async function readPdfStatement(file, preset) {
 
   const rows = [];
   let cols = null;            // {out, in, balance, amount} -> right-edge x of each column heading
-  let lastDate = null, pending = [], lastBal = null, runBal = null, justAdded = false, closing = null, hasInOut = false, sawBalanceCol = false;
+  let lastDate = null, lastRowY = null, pending = [], lastBal = null, runBal = null, justAdded = false, closing = null, hasInOut = false, sawBalanceCol = false;
+
+  const isHeader = (low, t) => /\bdate\b/.test(low) && /(paid out|money out|£ ?out|\bout\b|withdrawal|debit|paid in|money in|\bin\b|deposit|credit|amount|balance)/.test(low) && !leadingDate(t);
+  // If the statement has a table with headings, only read inside it: below the headings and no wider than them
+  // (keeps out side panels and the small print — Nationwide prints both next to and after the transactions).
+  const tabled = pages.some((lines) => lines.some((l) => isHeader(l.text.toLowerCase(), l.text)));
 
   for (const lines of pages) {
-    for (const line of lines) {
-      const t = line.text;
-      const low = t.toLowerCase();
+    let right = tabled ? null : Infinity;     // right edge of the table on this page
+    for (let line of lines) {
       const wasAdded = justAdded;
       justAdded = false;
+      const full = line.text;
+      if (right === null && !isHeader(full.toLowerCase(), full)) continue;   // above the table, or a page without one
+      const items = right === null ? line.items : line.items.filter((i) => i.x < right);
+      if (!items.length) { justAdded = wasAdded; continue; }
+      line = { ...line, items, text: items.map((i) => i.s).join(" ") };
+      const t = line.text;
+      const low = t.toLowerCase();
 
       // Column headings (repeated on each page)
-      if (/\bdate\b/.test(low) && /(paid out|money out|£ ?out|\bout\b|withdrawal|debit|paid in|money in|\bin\b|deposit|credit|amount|balance)/.test(low) && !leadingDate(t)) {
+      if (isHeader(low, t)) {
         const c = {};
         for (const it of line.items) {
           if (it.s.length > 24) continue;            // headings are short; long text is a sentence that happens to say "date"
           const s = it.s.toLowerCase();
-          if (/(paid out|money out|^£? ?out|withdrawals?|debits?|payments? out)/.test(s)) c.out = it;
-          else if (/(paid in|money in|^£? ?in$|deposits?|credits?|payments? in)/.test(s)) c.in = it;
-          else if (/balance/.test(s)) c.balance = it;
-          else if (/amount/.test(s)) c.amount = it;
+          // whole-heading matches only, and the first of each wins (a side panel saying "Average credit" isn't a column)
+          const h = s.replace(/[£()]/g, "").replace(/\s+/g, " ").trim();
+          if (/^(paid out|money out|out|withdrawals?|debits?|payments? out|spent)$/.test(h)) c.out ||= it;
+          else if (/^(paid in|money in|in|deposits?|credits?|payments? in|received)$/.test(h)) c.in ||= it;
+          else if (/^balance$/.test(h)) c.balance ||= it;
+          else if (/^amount( gbp)?$/.test(h)) c.amount ||= it;
+          else if (/^foreign/.test(h)) c.foreign ||= it;           // Amex: amount in the other currency — not ours
+          else if (/amount/.test(s)) c.amount ||= it;
         }
-        if (c.out || c.in || c.amount || c.balance) { cols = c; hasInOut ||= !!(c.out || c.in); sawBalanceCol ||= !!c.balance; }
+        if (c.out || c.in || c.amount || c.balance) {
+          cols = c; hasInOut ||= !!(c.out || c.in); sawBalanceCol ||= !!c.balance;
+          if (tabled) right = Math.max(...Object.values(c).map((h) => h.r)) + 25;
+        }
         pending = [];
         continue;
       }
@@ -154,12 +175,23 @@ export async function readPdfStatement(file, preset) {
       }
 
       if (!money.length) {
+        // Amex prints "CR" (a refund or payment) on the line under the amount
+        const near = wasAdded && lastRowY !== null && lastRowY - line.y < 20;   // the line right under the last transaction
+        if (near && /^(CR|DR)$/i.test(t.trim())) {
+          const last = rows[rows.length - 1];
+          last.amount = /CR/i.test(t) ? Math.abs(last.amount) : -Math.abs(last.amount);
+          justAdded = true;
+          continue;
+        }
         // A description line on its own (some banks wrap long descriptions, or put the date on the first line only)
         if (dt) { lastDate = toIso(dt, end); const rest = t.slice(dt.len).trim(); pending = rest ? [rest] : []; }
-        else if (wasAdded && !pending.length && t.length < 80) {
-          // Nationwide puts extra detail on the line underneath ("Salary", "APPLEPAY ****1234")
+        else if (near && !pending.length && t.length < 80) {
+          // Nationwide puts extra detail on the line underneath ("Salary", "APPLEPAY ****1234"); Amex sometimes "… CR"
           const last = rows[rows.length - 1];
-          last.note = [last.note, t].filter(Boolean).join(" · ").slice(0, 120);
+          let extra = t;
+          if (/\s(CR|DR)$/i.test(extra)) { last.amount = /CR$/i.test(extra) ? Math.abs(last.amount) : -Math.abs(last.amount); extra = extra.replace(/\s(CR|DR)$/i, ""); }
+          last.note = [last.note, extra].filter(Boolean).join(" · ").slice(0, 120);
+          lastRowY = line.y;
           justAdded = true;
           continue;
         }
@@ -190,6 +222,7 @@ export async function readPdfStatement(file, preset) {
         if (k === "out") out = Math.abs(v);
         else if (k === "in") inn = Math.abs(v);
         else if (k === "balance") bal = dr ? -Math.abs(v) : v;
+        else if (k === "foreign") continue;
         else amt = v;
       }
       if (!cols) {
@@ -227,6 +260,7 @@ export async function readPdfStatement(file, preset) {
       rows.push({ date, amount: Math.round(amount * 100) / 100, desc: desc.slice(0, 120), note: note.slice(0, 120) });
       pending = [];
       justAdded = true;
+      lastRowY = line.y;
     }
   }
 

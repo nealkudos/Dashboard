@@ -138,7 +138,17 @@ export async function purgeAccount(env, key) {
     const keep = txs.filter((t) => t.acct !== key);
     if (keep.length !== txs.length) { removed += txs.length - keep.length; await putMonth(env, k.name.slice(3), keep); }
   }
-  // Pairs can span neighbouring months: drop any pair that now points at nothing
+  await unpairOrphans(env);
+  const b = await getBudget(env);
+  if (b.balances[key]) { delete b.balances[key]; await putBudget(env, b); }
+  const latest = (await kv(env).get("budget:latest", "json")) || {};
+  if (latest[key]) { delete latest[key]; await kv(env).put("budget:latest", JSON.stringify(latest)); }
+  return removed;
+}
+
+/** Pairs can span neighbouring months: drop any transfer pair that now points at nothing. */
+async function unpairOrphans(env) {
+  const list = await kv(env).list({ prefix: "bt:" });
   const ids = new Set();
   const months = {};
   for (const k of list.keys) { months[k.name] = (await kv(env).get(k.name, "json")) || []; months[k.name].forEach((t) => ids.add(t.id)); }
@@ -147,9 +157,19 @@ export async function purgeAccount(env, key) {
     for (const t of txs) if (t.pair && !ids.has(t.pair)) { delete t.pair; t.auto = autoCategory(t); changed = true; }
     if (changed) await putMonth(env, name.slice(3), txs);
   }
-  const b = await getBudget(env);
-  if (b.balances[key]) { delete b.balances[key]; await putBudget(env, b); }
-  const latest = (await kv(env).get("budget:latest", "json")) || {};
-  if (latest[key]) { delete latest[key]; await kv(env).put("budget:latest", JSON.stringify(latest)); }
+}
+
+/** A statement is the full record for its dates: clear what an earlier upload put there for this account before re-adding. */
+export async function clearAccountRange(env, key, from, to) {
+  let removed = 0;
+  const [y0, m0] = from.split("-").map(Number);
+  const [y1, m1] = to.split("-").map(Number);
+  for (let y = y0, m = m0; y < y1 || (y === y1 && m <= m1); m === 12 ? (y++, m = 1) : m++) {
+    const ym = `${y}-${String(m).padStart(2, "0")}`;
+    const txs = await getMonth(env, ym);
+    const keep = txs.filter((t) => !(t.acct === key && t.date >= from && t.date <= to));
+    if (keep.length !== txs.length) { removed += txs.length - keep.length; await putMonth(env, ym, keep); }
+  }
+  if (removed) await unpairOrphans(env);
   return removed;
 }
