@@ -118,15 +118,29 @@ export async function syncMonzo(env, { force = false } = {}) {
     for (const a of st.accounts) {
       // First pull after connecting: up to 2 years. After that: the last week (always inside Monzo's 90-day window).
       const days = st.full_pulled ? Math.min(89, Math.max(7, Math.ceil((Date.now() - Date.parse(st.last_sync || 0)) / 86400000) + 7)) : 730;
-      let since = new Date(Date.now() - days * 86400000).toISOString();
+      const DAY = 86400000, WINDOW = 300 * DAY;   // Monzo refuses more than ~1 year per request, so ask in slices
+      const now = Date.now();
       const fresh = [];
-      for (let page = 0; page < 60; page++) {
-        const q = new URLSearchParams({ account_id: a.id, since, limit: "100" });
-        q.append("expand[]", "merchant");
-        const r = (await mz(env, st, `/transactions?${q}`)).transactions || [];
-        for (const t of r) if (!t.decline_reason && t.amount !== 0) fresh.push(await toTx(a.key, t));
-        if (r.length < 100) break;
-        since = r[r.length - 1].id;      // Monzo pages forward by transaction ID
+      // Last 89 days first (always allowed), then older history in slices.
+      const slices = [[Math.max(now - days * DAY, now - 89 * DAY), now + 60000]];
+      for (let end = now - 89 * DAY; end > now - days * DAY; end -= WINDOW) slices.push([Math.max(end - WINDOW, now - days * DAY), end]);
+      for (const [start, end] of slices) {
+        const before = new Date(end).toISOString();
+        let since = new Date(start).toISOString();
+        try {
+          for (let page = 0; page < 40; page++) {
+            const q = new URLSearchParams({ account_id: a.id, since, before, limit: "100" });
+            q.append("expand[]", "merchant");
+            const r = (await mz(env, st, `/transactions?${q}`)).transactions || [];
+            for (const t of r) if (!t.decline_reason && t.amount !== 0) fresh.push(await toTx(a.key, t));
+            if (r.length < 100) break;
+            since = r[r.length - 1].id;      // Monzo pages forward by transaction ID
+          }
+        } catch (e) {
+          // Older than 90 days is only allowed in the first 5 minutes after approval — if that's passed, keep what we can get.
+          if (e.code === "approve" && now - start > 89 * DAY) continue;
+          throw e;
+        }
       }
       added += await mergeTransactions(env, fresh);
       try {
