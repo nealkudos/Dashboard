@@ -16,6 +16,14 @@ const ICON = {
   Income: "💰", Transfers: "↔️",
 };
 const icon = (c) => ICON[c] || "•";
+const COLOR = {
+  Groceries: "#3fa66b", "Eating out": "#e8833a", Transport: "#3b82c4", Fuel: "#8a6d3b", Bills: "#7c5cc4", Housing: "#c4513b",
+  Subscriptions: "#c43b8f", Shopping: "#d9a21b", Health: "#2fa3a3", Family: "#e06c9f", Entertainment: "#5c6bc4", Travel: "#1f9fd1",
+  Cash: "#6b8e23", Fees: "#8c8c8c", Other: "#9aa0a6", Income: "#3fa66b", Transfers: "#9aa0a6",
+};
+const color = (c) => COLOR[c] || "#9aa0a6";
+let groupBy = "date";
+const shut = new Set();
 const SPEND_CATS = Object.keys(ICON).filter((c) => !["Income", "Transfers"].includes(c));
 
 let month = new URLSearchParams(location.search).get("month") || thisMonth();
@@ -113,6 +121,23 @@ function drawHome() {
   }
   $("h-alerts").innerHTML = alerts.map(([e, m, b], i) => `<div class="alert"><span>${e}</span><span>${esc(m)}</span><button type="button" data-a="${i}">${b}</button></div>`).join("");
   $("h-alerts").querySelectorAll("[data-a]").forEach((b) => (b.onclick = alerts[b.dataset.a][3]));
+
+  // spending by category
+  const cats = data.categories.filter((c) => c.spent > 0.005);
+  const totalSpent = cats.reduce((s, c) => s + c.spent, 0);
+  const count = {};
+  for (const tx of data.transactions) count[tx.cat] = (count[tx.cat] || 0) + 1;
+  $("h-cats").innerHTML = cats.length
+    ? `<div class="stack">${cats.map((c) => `<i style="flex:${c.spent};background:${color(c.name)}" title="${esc(c.name)}"></i>`).join("")}</div>` +
+      cats.map((c) => {
+        const pct = Math.round((c.spent / totalSpent) * 100);
+        return `<div class="catrow" data-cat="${esc(c.name)}"><div class="ico">${icon(c.name)}</div>
+          <div class="mid"><div class="d">${esc(c.name)}</div><div class="m">${count[c.name] || 0} transaction${count[c.name] === 1 ? "" : "s"} · ${pct}%</div>
+          <div class="bar"><i style="width:${(c.spent / cats[0].spent) * 100}%;background:${color(c.name)}"></i></div></div>
+          <div class="a">${gbp(c.spent)}${c.budget ? `<small>of ${gbp0(c.budget)}</small>` : ""}</div></div>`;
+      }).join("")
+    : `<div class="empty">No spending yet this month.</div>`;
+  $("h-cats").querySelectorAll("[data-cat]").forEach((r) => (r.onclick = () => { catFilter = r.dataset.cat; setGroup("date"); go("all"); }));
 
   const spending = data.transactions;
   $("h-recent").innerHTML = spending.slice(0, 5).map((t) => txRow(t, { showDate: true })).join("") || `<div class="empty">Nothing yet this month. Tap ＋ to add something.</div>`;
@@ -320,13 +345,41 @@ function drawAll_() {
   const q = $("q").value.trim().toLowerCase();
   const list = data.transactions.filter((t) => (!catFilter || t.cat === catFilter) && (!q || `${t.desc} ${t.note || ""} ${t.account}`.toLowerCase().includes(q)));
   let html = "", day = "";
-  for (const t of list) {
-    if (t.date !== day) { day = t.date; html += `<div class="day">${fmtDay(day)}</div>`; }
-    html += txRow(t);
+  if (groupBy === "cat") {
+    const groups = {};
+    for (const t of list) (groups[t.cat] ||= []).push(t);
+    const order = Object.keys(groups).sort((a, b) => {
+      const rank = (c) => (c === "Income" ? 1 : c === "Transfers" ? 2 : 0);
+      if (rank(a) !== rank(b)) return rank(a) - rank(b);
+      const sum = (c) => groups[c].reduce((s, t) => s + t.amount, 0);
+      return sum(a) - sum(b);                       // biggest spending first
+    });
+    for (const c of order) {
+      const g = groups[c];
+      const sum = g.reduce((s, t) => s + t.amount, 0);
+      html += `<div class="grp-h${shut.has(c) ? " shut" : ""}" data-g="${esc(c)}"><div class="ico" style="background:color-mix(in srgb, ${color(c)} 22%, var(--surface-2))">${icon(c)}</div>
+        <div class="n">${esc(c)}<small>${g.length}</small></div><div class="t ${sum > 0 ? "up" : ""}">${gbp(sum, true)}</div><span class="chev">▾</span></div>`;
+      if (!shut.has(c)) html += g.map((t) => txRow(t, { showDate: true })).join("");
+    }
+  } else {
+    for (const t of list) {
+      if (t.date !== day) { day = t.date; html += `<div class="day">${fmtDay(day)}</div>`; }
+      html += txRow(t);
+    }
   }
   $("txs").innerHTML = html || `<div class="empty">${data.transactions.length ? "Nothing matches." : "No transactions this month."}</div>`;
+  $("txs").querySelectorAll(".grp-h").forEach((h) => (h.onclick = () => { const c = h.dataset.g; shut.has(c) ? shut.delete(c) : shut.add(c); drawAll_(); }));
   bindRows($("txs"));
 }
+function setGroup(g) {
+  groupBy = g;
+  try { localStorage.setItem("budget-group", g); } catch { /* fine */ }
+  document.querySelectorAll("#grp button").forEach((b) => b.classList.toggle("on", b.dataset.g === g));
+  if (data) drawAll_();
+}
+document.querySelectorAll("#grp button").forEach((b) => (b.onclick = () => setGroup(b.dataset.g)));
+try { if (localStorage.getItem("budget-group") === "cat") setGroup("cat"); } catch { /* fine */ }
+$("h-cats-all").onclick = () => { catFilter = ""; setGroup("cat"); go("all"); };
 $("q").oninput = drawAll_;
 $("f-cat").onchange = () => { catFilter = $("f-cat").value; drawAll_(); };
 

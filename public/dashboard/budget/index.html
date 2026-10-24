@@ -50,6 +50,10 @@
       </div>
       <div id="h-alerts"></div>
       <div class="card">
+        <div class="card-h"><h3>Spending by category</h3><button class="link" id="h-cats-all" type="button">Group all</button></div>
+        <div id="h-cats"></div>
+      </div>
+      <div class="card">
         <div class="card-h"><h3>Recent</h3><button class="link" data-go="all" type="button">View all <span id="h-count"></span></button></div>
         <div id="h-recent"></div>
       </div>
@@ -109,6 +113,7 @@
 
     <!-- ALL TRANSACTIONS -->
     <section class="view" data-view="all" hidden>
+      <div class="seg2 grp" id="grp"><button type="button" data-g="date" class="on">By date</button><button type="button" data-g="cat">By category</button></div>
       <div class="card">
         <div class="tx-tools">
           <input id="q" placeholder="Search" autocomplete="off">

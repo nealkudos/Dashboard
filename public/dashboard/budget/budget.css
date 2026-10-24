@@ -63,6 +63,28 @@ button.link { background: none; color: var(--accent); padding: 4px 0; font-weigh
 .meter i.warn { background: #d9a21b; } .meter i.over { background: var(--danger); }
 .bud .sub { margin-left: 50px; font-size: 12px; color: var(--muted); }
 
+/* spending by category */
+.stack { display: flex; height: 12px; border-radius: 6px; overflow: hidden; gap: 2px; margin: 6px 0 8px; background: var(--surface-2); }
+.stack i { display: block; height: 100%; min-width: 3px; }
+.catrow { display: flex; align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line); cursor: pointer; }
+.catrow:last-child { border-bottom: 0; }
+.catrow .mid { flex: 1; min-width: 0; }
+.catrow .d { font-weight: 600; }
+.catrow .m { font-size: 12px; color: var(--muted); }
+.catrow .bar { height: 5px; border-radius: 3px; background: var(--surface-2); margin-top: 5px; overflow: hidden; }
+.catrow .bar i { display: block; height: 100%; border-radius: 3px; }
+.catrow .a { font-weight: 650; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.catrow .a small { display: block; font-weight: 500; font-size: 12px; color: var(--muted); }
+.grp { margin: 0 0 12px; }
+.grp-h { display: flex; align-items: center; gap: 10px; margin: 14px 0 2px; padding-bottom: 6px; border-bottom: 2px solid var(--line); cursor: pointer; }
+.grp-h:first-child { margin-top: 4px; }
+.grp-h .ico { width: 32px; height: 32px; font-size: 16px; border-radius: 10px; }
+.grp-h .n { flex: 1; font-weight: 700; }
+.grp-h .n small { font-weight: 500; color: var(--muted); font-size: 12px; margin-left: 6px; }
+.grp-h .t { font-weight: 700; font-variant-numeric: tabular-nums; }
+.grp-h .chev { color: var(--muted); transition: transform .15s; }
+.grp-h.shut .chev { transform: rotate(-90deg); }
+
 /* calendar */
 .cal-card { padding: 10px; }
 .cal-head, .cal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
