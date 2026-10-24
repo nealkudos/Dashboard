@@ -21,8 +21,8 @@ export const CATEGORIES = [
 ];
 
 const RULES = [
+  ["Income", /\b(salary|wages|payroll|kudos|dividend|interest paid|hmrc|tax refund|bgc|bank giro credit)\b/i],
   ["Transfers", /\b(monzo|amex|american express|nationwide (credit )?card|card payment received|payment received|thank you for your payment|transfer (to|from)|to savings|from savings|pot transfer|savings pot)\b/i],
-  ["Income", /\b(salary|wages|payroll|kudos ?av|dividend|interest paid)\b/i],
   ["Groceries", /\b(tesco|sainsbury|asda|aldi|lidl|morrisons|waitrose|co-?op|ocado|iceland|m&s food|marks ?& ?spencer simply food|budgens|costco)\b/i],
   ["Eating out", /\b(mcdonald|kfc|nando|greggs|pret|starbucks|costa|caffe nero|deliveroo|just eat|uber ?eats|domino|pizza|burger|restaurant|cafe|wagamama|five guys|subway|leon|itsu|wasabi)\b/i],
   ["Transport", /\b(tfl|transport for london|trainline|gwr|great western|elizabeth line|uber(?! ?eats)|bolt|addison lee|parking|ringgo|paybyphone|congestion|ulez|dart charge|national rail|avanti|lner)\b/i],
@@ -64,14 +64,16 @@ export function autoCategory(tx) {
   return tx.amount > 0 ? "Income" : "Other";
 }
 
+const looksLikePay = (tx) => tx.amount > 0 && RULES[0][1].test(`${tx.desc || ""} ${tx.note || ""}`);
+
 export function categoryOf(tx, budget) {
-  return budget.overrides[tx.id] || budget.rules[merchantKey(tx.desc)] || tx.auto || autoCategory(tx);
+  return budget.overrides[tx.id] || budget.rules[merchantKey(tx.desc)] || (looksLikePay(tx) ? "Income" : null) || tx.auto || autoCategory(tx);
 }
 
 export function markTransfers(list) {
   for (const a of list) {
     if (a.amount >= 0 || a.pair) continue;
-    const b = list.find((x) => !x.pair && x.amount > 0 && x.acct !== a.acct && Math.abs(x.amount + a.amount) < 0.005 &&
+    const b = list.find((x) => !x.pair && x.amount > 0 && !looksLikePay(x) && x.acct !== a.acct && Math.abs(x.amount + a.amount) < 0.005 &&
       Math.abs(Date.parse(x.date) - Date.parse(a.date)) <= 3 * 86400000);
     if (b) { a.pair = b.id; b.pair = a.id; a.auto = b.auto = "Transfers"; }
   }

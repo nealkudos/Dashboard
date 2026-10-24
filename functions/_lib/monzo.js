@@ -113,7 +113,16 @@ export async function syncMonzo(env, { force = false } = {}) {
     }
     await putAccounts(env, accounts);
     // Any Monzo account we no longer sync (e.g. the joint account) goes, along with its transactions
-    for (const old of accounts.filter((x) => x.source === "monzo" && !st.accounts.some((a) => a.key === x.key))) await purgeAccount(env, old.key);
+    if (st.accounts.length) for (const old of accounts.filter((x) => x.source === "monzo" && !st.accounts.some((a) => a.key === x.key))) await purgeAccount(env, old.key);
+    // ...and transactions left behind by a Monzo account that was removed earlier (they show as "Removed account")
+    if (force && st.accounts.length) {
+      const keep = new Set(st.accounts.map((a) => a.key));
+      const stray = new Set();
+      for (const k of (await kv(env).list({ prefix: "bt:" })).keys) {
+        for (const t of (await kv(env).get(k.name, "json")) || []) if (t.acct.startsWith("mz") && !keep.has(t.acct)) stray.add(t.acct);
+      }
+      for (const key of stray) await purgeAccount(env, key);
+    }
 
     const budget = await getBudget(env);
     let added = 0;
