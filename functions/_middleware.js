@@ -23,7 +23,14 @@ function withHeaders(res, extra = {}) {
 
 export async function onRequest(context) {
   const { request, env, next } = context;
-  const path = new URL(request.url).pathname;
+  const url = new URL(request.url);
+  const path = url.pathname;
+
+  // One address only: www.nealchauhan.co.uk -> nealchauhan.co.uk (keeps sign-in and the Monzo return link on the same site)
+  if (url.hostname.startsWith("www.")) {
+    url.hostname = url.hostname.slice(4);
+    return Response.redirect(url.toString(), 301);
+  }
 
   const isDashboard = path === "/dashboard" || path.startsWith("/dashboard/");
   const isPrivateApi = path.startsWith("/api/") && !PUBLIC_API.test(path);
