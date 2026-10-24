@@ -6,7 +6,7 @@ const MONTHS = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8,
 const MON = "(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*";
 const pad = (n) => String(n).padStart(2, "0");
 const yy = (y) => (y && y.length === 2 ? 2000 + +y : y ? +y : null);
-const MONEY = /^[-–]?£?\d{1,3}(,\d{3})*\.\d{2}(\s?(CR|DR|-))?$/i;
+const MONEY = /^[-–]?£?(\d{1,3}(,\d{3})+|\d+)\.\d{2}(\s?(CR|DR|-))?$/i;   // 1,234.56 or 1234.56
 
 let pdfjs;
 async function loadPdfjs() {
