@@ -7,76 +7,128 @@
   <meta name="theme-color" content="#111214" media="(prefers-color-scheme: dark)">
   <meta name="theme-color" content="#f4f3ef" media="(prefers-color-scheme: light)">
   <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Budget">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="icon" href="/assets/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/assets/icon-180.png">
   <link rel="stylesheet" href="/assets/app.css">
-  <link rel="stylesheet" href="/dashboard/trading/trading.css">
   <link rel="stylesheet" href="/dashboard/budget/budget.css">
   <script src="/assets/theme.js"></script>
   <title>Budget</title>
 </head>
-<body>
+<body class="bapp">
   <header class="top">
     <div class="top-inner">
       <a class="back" href="/dashboard/" aria-label="Back to dashboard">‹</a>
       <div class="brand"><div class="brand-mark">N</div><div class="brand-name">Budget</div></div>
       <div class="spacer"></div>
       <button class="ghost icon theme-btn" type="button"></button>
+      <button class="ghost icon" id="settings" type="button" aria-label="Accounts and settings">⚙︎</button>
     </div>
   </header>
 
-  <main class="trd">
-    <div class="trd-head">
-      <div class="month-nav">
-        <button class="ghost icon" id="prev" type="button" aria-label="Previous month">‹</button>
-        <div class="month" id="month">…</div>
-        <button class="ghost icon" id="next" type="button" aria-label="Next month">›</button>
-      </div>
-      <div class="sync-row">
-        <span class="muted small" id="synced"></span>
-        <button class="ghost icon" id="sync" type="button">Sync now</button>
-      </div>
+  <main class="app">
+    <div class="month-bar">
+      <button class="nav" id="prev" type="button" aria-label="Previous month">‹</button>
+      <div class="month" id="month">…</div>
+      <button class="nav" id="next" type="button" aria-label="Next month">›</button>
     </div>
 
-    <div class="banner err" id="err" hidden></div>
-    <div class="banner ok-b" id="okmsg" hidden></div>
+    <div class="note err" id="err" hidden></div>
+    <div class="note ok" id="okmsg" hidden></div>
 
-    <div class="tiles">
-      <div class="tile"><div class="k">Money in</div><div class="v up" id="t-in">–</div><div class="s">salary &amp; other income</div></div>
-      <div class="tile"><div class="k">Spent</div><div class="v" id="t-out">–</div><div class="s" id="t-out-s">bills &amp; spending</div></div>
-      <div class="tile"><div class="k">Left</div><div class="v" id="t-left">–</div><div class="s">in minus spent</div></div>
-      <div class="tile"><div class="k">Budget used</div><div class="v" id="t-bud">–</div><div class="s" id="t-bud-s">set limits below</div></div>
-    </div>
-
-    <div class="two">
-      <section class="card">
-        <h3>Where it went <button class="link small" id="edit-budgets" type="button" style="float:right">Set budgets</button></h3>
-        <div id="cats"></div>
-      </section>
-      <section class="card">
-        <h3>Accounts</h3>
-        <div id="banks"></div>
-        <div class="acct-actions">
-          <button type="button" id="connect-monzo">Connect Monzo</button>
-          <button type="button" class="ghost" id="upload">Upload statement</button>
+    <!-- HOME -->
+    <section class="view" data-view="home">
+      <div class="hero">
+        <div class="k">Left this month</div>
+        <div class="big" id="h-left">–</div>
+        <div class="split">
+          <div><div class="k">Income</div><div class="v up" id="h-in">–</div></div>
+          <div><div class="k">Spent</div><div class="v" id="h-out">–</div></div>
         </div>
-        <p class="muted small" style="margin:8px 0 0">Monzo updates live. For Nationwide and Amex, download a CSV statement from their website or app and upload it here — once a week is plenty.</p>
-      </section>
-    </div>
-
-    <section class="card">
-      <h3>Transactions</h3>
-      <div class="tx-tools">
-        <input id="q" placeholder="Search" autocomplete="off">
-        <select id="f-cat"><option value="">All categories</option></select>
       </div>
-      <div id="txs"></div>
+      <div id="h-alerts"></div>
+      <div class="card">
+        <div class="card-h"><h3>Recent</h3><button class="link" data-go="all" type="button">View all <span id="h-count"></span></button></div>
+        <div id="h-recent"></div>
+      </div>
+      <div class="card">
+        <div class="card-h"><h3>Budgets</h3><button class="link" data-go="budgets" type="button">See all</button></div>
+        <div id="h-budgets"></div>
+      </div>
+      <div class="card">
+        <div class="card-h"><h3>Savings</h3><button class="link" data-go="savings" type="button">See all</button></div>
+        <div id="h-goals"></div>
+      </div>
+    </section>
+
+    <!-- CALENDAR -->
+    <section class="view" data-view="calendar" hidden>
+      <div class="card cal-card">
+        <div class="cal-head"><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span></div>
+        <div class="cal" id="cal"></div>
+      </div>
+      <div class="card">
+        <div class="card-h"><h3>Month summary</h3></div>
+        <div class="split two"><div><div class="k">Income</div><div class="v up" id="c-in">–</div></div><div><div class="k">Spent</div><div class="v" id="c-out">–</div></div></div>
+      </div>
+      <div class="card">
+        <div class="card-h"><h3 id="c-day-h">Day</h3><span class="muted small" id="c-day-t"></span></div>
+        <div id="c-day"></div>
+      </div>
+    </section>
+
+    <!-- BUDGETS -->
+    <section class="view" data-view="budgets" hidden>
+      <div class="hero slim">
+        <div class="k">Budgets used</div>
+        <div class="big" id="b-used">–</div>
+        <div class="muted small" id="b-sub"></div>
+      </div>
+      <div class="card">
+        <div class="card-h"><h3>Your budgets</h3><button class="link" id="edit-budgets" type="button">Edit</button></div>
+        <div id="b-list"></div>
+      </div>
+      <div class="card" id="b-other-card">
+        <div class="card-h"><h3>Other spending</h3></div>
+        <div id="b-other"></div>
+      </div>
+    </section>
+
+    <!-- SAVINGS -->
+    <section class="view" data-view="savings" hidden>
+      <div class="hero slim">
+        <div class="k">Saved so far</div>
+        <div class="big up" id="s-total">–</div>
+        <div class="muted small" id="s-sub"></div>
+      </div>
+      <div id="s-list"></div>
+      <button class="wide-btn" id="new-goal" type="button">＋ New goal</button>
+    </section>
+
+    <!-- ALL TRANSACTIONS -->
+    <section class="view" data-view="all" hidden>
+      <div class="card">
+        <div class="tx-tools">
+          <input id="q" placeholder="Search" autocomplete="off">
+          <select id="f-cat"><option value="">All</option></select>
+        </div>
+        <div id="txs"></div>
+      </div>
     </section>
   </main>
 
-  <dialog id="dlg" class="dlg"></dialog>
+  <button class="fab" id="add" type="button" aria-label="Add spending">＋</button>
+
+  <nav class="tabbar">
+    <button data-tab="home" class="on" type="button"><span><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9.5h13V10"/><path d="M10 19.5v-5h4v5"/></svg></span>Home</button>
+    <button data-tab="calendar" type="button"><span><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg></span>Calendar</button>
+    <button data-tab="budgets" type="button"><span><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5V12l6 6"/></svg></span>Budgets</button>
+    <button data-tab="savings" type="button"><span><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></svg></span>Savings</button>
+  </nav>
+
+  <dialog id="dlg" class="sheet"></dialog>
   <script src="/dashboard/budget/budget.js" type="module"></script>
 </body>
 </html>

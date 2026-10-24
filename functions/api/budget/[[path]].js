@@ -6,6 +6,9 @@
 //   PUT    /api/budget/budgets     {budgets}   monthly limit per category
 //   PUT    /api/budget/category    {id, month, cat, always}
 //   DELETE /api/budget/account/:key            forget an account (keeps its transactions unless ?purge=1)
+//   POST   /api/budget/tx      {date, amount, desc, cat}   add something by hand (cash etc.)
+//   DELETE /api/budget/tx/:month/:id           remove one you added by hand
+//   PUT    /api/budget/goals   {goals:[{id?, name, emoji, target, saved, due?}]}   savings goals
 import { json, fail, readJson, sameOrigin, kv } from "../../_lib/core.js";
 import { randomId } from "../../_lib/crypto.js";
 import {
@@ -31,6 +34,9 @@ export async function onRequest({ request, env, params }) {
     }
     if (method === "POST" && route === "import") return importRows(request, env);
     if (method === "PUT" && route === "budgets") return setBudgets(request, env);
+    if (method === "POST" && route === "tx") return addManual(request, env);
+    if (method === "DELETE" && parts[0] === "tx" && parts[1] && parts[2]) return deleteManual(env, parts[1], parts[2]);
+    if (method === "PUT" && route === "goals") return setGoals(request, env);
     if (method === "PUT" && route === "category") return setCategory(request, env);
     if (method === "DELETE" && parts[0] === "account" && parts[1]) return removeAccount(request, env, parts[1]);
     return fail("Not found", 404);
@@ -47,6 +53,7 @@ async function summary(request, env) {
   if (!/^\d{4}-\d{2}$/.test(month)) month = thisMonth();
   const [accounts, budget, txs, monzo] = await Promise.all([getAccounts(env), getBudget(env), getMonth(env, month), monzoStatus(env)]);
   const acctName = Object.fromEntries(accounts.map((a) => [a.key, `${a.bank} ${a.name}${a.mask ? ` ••${a.mask}` : ""}`]));
+  acctName.manual = "Added by you";
 
   let income = 0, spent = 0;
   const byCat = {};
@@ -56,7 +63,7 @@ async function summary(request, env) {
       if (cat === "Income" || (t.amount > 0 && cat === "Other")) income += t.amount;
       else { spent -= t.amount; byCat[cat] = (byCat[cat] || 0) - t.amount; }   // refunds in a category reduce it
     }
-    return { id: t.id, date: t.date, amount: t.amount, desc: t.desc, note: t.note, cat, account: acctName[t.acct] || "Removed account" };
+    return { id: t.id, date: t.date, amount: t.amount, desc: t.desc, note: t.note, cat, account: acctName[t.acct] || "Removed account", manual: t.acct === "manual" };
   });
 
   const categories = CATEGORIES.filter((c) => !["Income", "Transfers"].includes(c))
@@ -80,6 +87,7 @@ async function summary(request, env) {
     transactions: list,
     accounts: accounts.map((a) => ({ ...a, balance: budget.balances[a.key] || null, latest: latest[a.key] || null })),
     monzo: { configured: monzoConfigured(env), ...monzo },
+    goals: (await kv(env).get("budget:goals", "json")) || [],
     lastSync: budget.lastSync,
   });
 }
@@ -175,4 +183,47 @@ async function removeAccount(request, env, key) {
     }
   }
   return json({ ok: true });
+}
+
+async function addManual(request, env) {
+  const { date, amount, desc, cat } = await readJson(request);
+  const n = Math.round(Number(amount) * 100) / 100;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date || "")) return fail("Pick a date");
+  if (!isFinite(n) || n === 0 || Math.abs(n) > 1e6) return fail("Enter an amount");
+  if (cat && !CATEGORIES.includes(cat)) return fail("Unknown category");
+  const tx = await makeTx("manual", { date, amount: n, desc: String(desc || cat || "Spending").slice(0, 80), ref: "m" + randomId(8), cat: cat || null });
+  await mergeTransactions(env, [tx]);
+  return json({ ok: true, id: tx.id });
+}
+
+async function deleteManual(env, month, id) {
+  if (!/^\d{4}-\d{2}$/.test(month)) return fail("Bad month");
+  const txs = await getMonth(env, month);
+  const t = txs.find((x) => x.id === id);
+  if (!t) return fail("Not found", 404);
+  if (t.acct !== "manual") return fail("Only things you added by hand can be deleted.");
+  const keep = txs.filter((x) => x.id !== id);
+  if (t.pair) for (const x of keep) if (x.pair === id) { delete x.pair; x.auto = undefined; }
+  await putMonth(env, month, keep);
+  return json({ ok: true });
+}
+
+async function setGoals(request, env) {
+  const { goals } = await readJson(request);
+  if (!Array.isArray(goals) || goals.length > 30) return fail("Bad goals");
+  const clean = [];
+  for (const g of goals) {
+    const target = Math.round(Number(g.target) * 100) / 100;
+    const saved = Math.max(0, Math.round(Number(g.saved || 0) * 100) / 100);
+    const name = String(g.name || "").trim().slice(0, 40);
+    if (!name || !(target > 0)) return fail("Each goal needs a name and a target");
+    clean.push({
+      id: /^[a-f0-9]{8,16}$/.test(g.id || "") ? g.id : randomId(6), name, target, saved,
+      emoji: String(g.emoji || "🎯").slice(0, 4),
+      due: /^\d{4}-\d{2}-\d{2}$/.test(g.due || "") ? g.due : null,
+      history: Array.isArray(g.history) ? g.history.slice(-50).map((h) => ({ date: String(h.date).slice(0, 10), amount: Math.round(Number(h.amount) * 100) / 100 })) : [],
+    });
+  }
+  await kv(env).put("budget:goals", JSON.stringify(clean));
+  return json({ ok: true, goals: clean });
 }

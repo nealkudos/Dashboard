@@ -56,7 +56,7 @@ to any page that loads it and has a `.theme-btn` button.
 
 ## Budget tracker
 
-`/dashboard/budget/` (plus a **Budget** block) shows money in, spending by category against monthly budgets, and every transaction.
+`/dashboard/budget/` is a small budgeting app (plus a **Budget** block on the dashboard): **Home** (left this month, recent, budgets, savings), **Calendar** (money in/out per day), **Budgets** (spent vs limit, what's left per day), **Savings** goals, and a **＋** button to log cash or anything else by hand. Accounts live under ⚙︎.
 
 - **Monzo — live.** developers.monzo.com → sign in → **Clients → New OAuth Client**: Confidential **Yes**, redirect URL `https://nealchauhan.co.uk/monzo-callback`. In Cloudflare add `MONZO_CLIENT_ID` and `MONZO_CLIENT_SECRET` (**Secret**), redeploy, then press **Connect Monzo** on the Budget page and approve in the Monzo app. History is pulled straight away (Monzo only allows the last 90 days after the first 5 minutes); after that it tops up whenever the page is opened.
 - **Nationwide, Amex and others — statement upload.** Download a CSV from the bank's website/app and use **Upload statement**. The file is read in the browser first so you can check money in/out before importing; uploading overlapping statements never duplicates anything.
