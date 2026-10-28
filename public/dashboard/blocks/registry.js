@@ -14,6 +14,7 @@ import scanner from "./scanner.js";
 import botStatus from "./bot-status.js";
 import budget from "./budget.js";
 import football from "./football.js";
+import jobs from "./jobs.js";
 
 export default [
   welcome,
@@ -23,6 +24,7 @@ export default [
   botStatus,
   budget,
   football,
+  jobs,
   links,
   notes,
 ];

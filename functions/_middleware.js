@@ -6,7 +6,7 @@ const PUBLIC_API = /^\/api\/auth\//;
 const SECURITY_HEADERS = {
   "content-security-policy":
     "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; " +
-    "connect-src 'self'; font-src 'self' data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'",
+    "connect-src 'self'; font-src 'self' data:; frame-src https://kudos-jobs-board-j5fr.pages.grok.bot; frame-ancestors 'none'; base-uri 'none'; form-action 'self'",
   "x-frame-options": "DENY",
   "x-content-type-options": "nosniff",
   "referrer-policy": "no-referrer",
