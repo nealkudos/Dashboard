@@ -1,0 +1,5 @@
+# Always check for a newer version of the site's own styles and scripts (cheap: the browser revalidates with an ETag)
+/assets/*
+  Cache-Control: no-cache
+/dashboard/*
+  Cache-Control: no-cache
