@@ -6,7 +6,8 @@ main.app { max-width: 620px; margin: 0 auto; padding: 12px 16px calc(120px + env
 .up { color: var(--ok); } .down { color: var(--danger); } .warn-t { color: #d9a21b; }
 
 .month-bar { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 2px 0 12px; }
-.month-bar .month { font-size: 19px; font-weight: 650; min-width: 170px; text-align: center; }
+.month-bar .month { font-size: 19px; font-weight: 650; min-width: 170px; text-align: center; line-height: 1.2; }
+.month-bar .month small { display: block; font-size: 12px; font-weight: 500; color: var(--muted); margin-top: 2px; }
 .month-bar .nav { background: var(--surface); color: var(--text); border: 1px solid var(--line); width: 34px; height: 34px; padding: 0; border-radius: 50%; font-size: 18px; }
 .month-bar .nav:disabled { opacity: .35; }
 
@@ -171,3 +172,14 @@ button.link { background: none; color: var(--accent); padding: 4px 0; font-weigh
   main.app { padding-top: 18px; }
   .big { font-size: 40px; }
 }
+
+/* statements to upload */
+.stmts .stmt { display: flex; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--line); }
+.stmts .stmt:last-child { border-bottom: 0; }
+.stmts .stmt .mid { flex: 1; min-width: 0; }
+.stmts .stmt .d { font-weight: 600; }
+.stmts .stmt .m { font-size: 13px; color: var(--muted); }
+.stmts .stmt .m b { color: var(--text); }
+.stmts .stmt button { padding: 7px 12px; font-size: 13px; flex: none; }
+.cycle { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
+.cycle select, .cycle input { width: auto !important; }

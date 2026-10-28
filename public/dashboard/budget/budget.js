@@ -7,7 +7,9 @@ const gbp = (n, sign = false) => (sign && n > 0 ? "+" : n < 0 ? "−" : "") + "�
 const gbp0 = (n) => (n < 0 ? "−" : "") + "£" + Math.abs(n).toLocaleString("en-GB", { maximumFractionDigits: 0 });
 const short = (n) => Math.abs(n) >= 1000 ? `${(Math.abs(n) / 1000).toFixed(1).replace(/\.0$/, "")}k` : Math.round(Math.abs(n)).toString();
 const todayStr = () => new Date().toLocaleDateString("en-CA");
-const thisMonth = () => todayStr().slice(0, 7);
+// The budget month you're in now (with payday-to-payday months this can be next calendar month already)
+const thisMonth = () => data?.current || todayStr().slice(0, 7);
+const nextDay = (d) => new Date(Date.parse(d + "T12:00:00Z") + 86400000).toISOString().slice(0, 10);
 const fmtDay = (d, opts = { weekday: "short", day: "numeric", month: "short" }) => new Date(d + "T12:00:00").toLocaleDateString("en-GB", opts);
 
 const ICON = {
@@ -26,7 +28,7 @@ let groupBy = "date";
 const shut = new Set();
 const SPEND_CATS = Object.keys(ICON).filter((c) => !["Income", "Transfers"].includes(c));
 
-let month = new URLSearchParams(location.search).get("month") || thisMonth();
+let month = new URLSearchParams(location.search).get("month") || null;   // null = whichever month you're in now
 let view = "home";
 let data = null;
 let selDay = null;
@@ -63,6 +65,7 @@ document.querySelectorAll(".tabbar button").forEach((b) => (b.onclick = () => go
 document.querySelectorAll("[data-go]").forEach((b) => (b.onclick = () => go(b.dataset.go)));
 
 function shiftMonth(d) {
+  if (!month) return;
   const [y, m] = month.split("-").map(Number);
   month = new Date(y, m - 1 + d, 1).toLocaleDateString("en-CA").slice(0, 7);
   selDay = null;
@@ -73,11 +76,14 @@ $("prev").onclick = () => shiftMonth(-1);
 $("next").onclick = () => shiftMonth(1);
 
 async function load() {
-  const [y, m] = month.split("-").map(Number);
-  $("month").textContent = new Date(y, m - 1, 1).toLocaleDateString("en-GB", { month: "long", year: "numeric" });
-  $("next").disabled = month >= thisMonth();
   try {
-    data = await api(`/api/budget/summary?month=${month}`);
+    data = await api(`/api/budget/summary${month ? `?month=${month}` : ""}`);
+    month = data.month;
+    const [y, m] = month.split("-").map(Number);
+    const name = new Date(y, m - 1, 1).toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+    const lastDay = new Date(Date.parse(data.period.end + "T12:00:00Z") - 86400000).toISOString().slice(0, 10);
+    $("month").innerHTML = `${esc(name)}${data.payday ? `<small>${fmtDay(data.period.start, { day: "numeric", month: "short" })} – ${fmtDay(lastDay, { day: "numeric", month: "short" })}</small>` : ""}`;
+    $("next").disabled = month >= thisMonth();
     drawAll();
   } catch (e) { showErr(e.message); }
 }
@@ -99,9 +105,25 @@ function bindRows(root) {
 }
 const daysLeftInMonth = () => {
   if (month !== thisMonth()) return month < thisMonth() ? 0 : null;
-  const [y, m] = month.split("-").map(Number);
-  return new Date(y, m, 0).getDate() - new Date().getDate() + 1;
+  return Math.max(1, Math.round((Date.parse(data.period.end) - Date.parse(todayStr())) / 86400000));
 };
+
+// Which statements to upload next, and from what date (the day after the last one you uploaded ends)
+function statementsCard() {
+  const today = todayStr();
+  const due = data.accounts.filter((a) => a.source === "upload").map((a) => {
+    const from = a.latest ? nextDay(a.latest) : null;
+    const gap = a.latest ? Math.round((Date.parse(today) - Date.parse(a.latest)) / 86400000) : 999;
+    return { a, from, gap };
+  }).filter((x) => x.gap > 3);
+  if (!due.length) return "";
+  const f = (d) => fmtDay(d, { day: "numeric", month: "short", year: "numeric" });
+  return `<div class="card stmts"><div class="card-h"><h3>📄 Statements to upload</h3></div>
+    ${due.map(({ a, from }) => `<div class="stmt"><div class="mid"><div class="d">${esc(a.bank)} ${esc(a.name)}${a.mask ? ` ••${esc(a.mask)}` : ""}</div>
+      <div class="m">${from ? `Next one from <b>${f(from)}</b> to today · last one ended ${fmtDay(a.latest, { day: "numeric", month: "short" })}` : "Upload your first statement"}</div></div>
+      <button type="button" data-upl="${esc(a.key)}">Upload</button></div>`).join("")}
+  </div>`;
+}
 
 // ---------- Home ----------
 function drawHome() {
@@ -115,12 +137,9 @@ function drawHome() {
   const alerts = [];
   if (!data.accounts.length && !data.transactions.length) alerts.push(["👋", "Connect Monzo or upload a statement to get started", "Set up", openSettings]);
   if (data.monzo.connected && data.monzo.waiting) alerts.push(["📱", "Monzo is waiting for you to approve access in the app", "Check", () => sync(true)]);
-  for (const a of data.accounts.filter((a) => a.source === "upload" && a.latest)) {
-    const age = Math.round((Date.parse(todayStr()) - Date.parse(a.latest)) / 86400000);
-    if (age > 10) alerts.push(["📄", `${a.bank} ${a.name.toLowerCase()} is up to ${fmtDay(a.latest, { day: "numeric", month: "short" })}`, "Upload", () => upload(a.key)]);
-  }
-  $("h-alerts").innerHTML = alerts.map(([e, m, b], i) => `<div class="alert"><span>${e}</span><span>${esc(m)}</span><button type="button" data-a="${i}">${b}</button></div>`).join("");
+  $("h-alerts").innerHTML = alerts.map(([e, m, b], i) => `<div class="alert"><span>${e}</span><span>${esc(m)}</span><button type="button" data-a="${i}">${b}</button></div>`).join("") + statementsCard();
   $("h-alerts").querySelectorAll("[data-a]").forEach((b) => (b.onclick = alerts[b.dataset.a][3]));
+  $("h-alerts").querySelectorAll("[data-upl]").forEach((b) => (b.onclick = () => upload(b.dataset.upl)));
 
   // spending by category
   const cats = data.categories.filter((c) => c.spent > 0.005);
@@ -173,9 +192,7 @@ function budRow(c) {
 
 // ---------- Calendar ----------
 function drawCalendar() {
-  const [y, m] = month.split("-").map(Number);
-  const first = new Date(y, m - 1, 1);
-  const days = new Date(y, m, 0).getDate();
+  const first = new Date(data.period.start + "T12:00:00");
   const lead = (first.getDay() + 6) % 7;            // Monday first
   const byDay = {};
   for (const t of data.transactions) {
@@ -184,12 +201,13 @@ function drawCalendar() {
     if (t.amount > 0 && (t.cat === "Income" || t.cat === "Other")) d.in += t.amount; else d.out -= t.amount;
   }
   const maxOut = Math.max(1, ...Object.values(byDay).map((d) => d.out));
-  if (!selDay || selDay.slice(0, 7) !== month) selDay = month === thisMonth() ? todayStr() : `${month}-01`;
+  const inPeriod = (d) => d >= data.period.start && d < data.period.end;
+  if (!selDay || !inPeriod(selDay)) selDay = inPeriod(todayStr()) ? todayStr() : data.period.start;
 
   let html = "";
   for (let i = 0; i < lead; i++) html += `<button class="out" disabled></button>`;
-  for (let d = 1; d <= days; d++) {
-    const ds = `${month}-${String(d).padStart(2, "0")}`;
+  for (let ds = data.period.start; ds < data.period.end; ds = nextDay(ds)) {
+    const d = +ds.slice(8, 10);
     const v = byDay[ds];
     html += `<button type="button" data-d="${ds}" class="${ds === todayStr() ? "today" : ""} ${ds === selDay ? "sel" : ""}">
       <span>${d}</span>${v?.in ? `<span class="ci">+${short(v.in)}</span>` : ""}${v?.out > 0.5 ? `<span class="co">−${short(v.out)}</span>` : ""}
@@ -410,7 +428,7 @@ function txSheet(t) {
 $("add").onclick = () => {
   const d = $("dlg");
   let dir = -1, cat = "Eating out";
-  const defDate = month === thisMonth() ? todayStr() : (selDay || `${month}-01`);
+  const defDate = month === thisMonth() ? todayStr() : (selDay || data.period.start);
   d.innerHTML = `<h3>Add</h3>
     <div class="seg2"><button type="button" class="on" data-dir="-1">Spent</button><button type="button" data-dir="1">Received</button></div>
     <input type="text" inputmode="decimal" class="amount-in fld" id="a-amt" placeholder="£0.00" autocomplete="off">
@@ -464,7 +482,23 @@ function openSettings() {
       <button class="ghost" type="button" id="s-up" style="flex:1">Upload statement</button>
       ${data.monzo.connected ? `<button class="ghost" type="button" id="s-sync" style="flex:1">Sync Monzo now</button>` : ""}
     </div>
+    <h3 style="margin-top:20px">Budget month</h3>
+    <div class="muted small">Payday to payday lines your salary up with what it pays for. The month starts the day your pay actually lands.</div>
+    <div class="cycle">
+      <select id="s-cycle"><option value="pay">Payday to payday</option><option value="cal">Calendar month</option></select>
+      <span id="s-pd-wrap">payday <input type="text" inputmode="numeric" id="s-pd" maxlength="2" style="width:56px !important;text-align:center" value="${data.payday || 28}"></span>
+      <button type="button" id="s-cyc-save" style="padding:8px 12px">Save</button>
+    </div>
     <div class="actions"><button class="ghost" type="button" id="x">Done</button></div>`;
+  const cyc = d.querySelector("#s-cycle"), pdWrap = d.querySelector("#s-pd-wrap");
+  cyc.value = data.payday ? "pay" : "cal";
+  pdWrap.hidden = cyc.value !== "pay";
+  cyc.onchange = () => (pdWrap.hidden = cyc.value !== "pay");
+  d.querySelector("#s-cyc-save").onclick = async () => {
+    const payday = cyc.value === "cal" ? 0 : parseInt(d.querySelector("#s-pd").value, 10);
+    try { await api("/api/budget/settings", { method: "PUT", body: { payday } }); month = null; d.close(); history.replaceState(null, "", location.pathname); await load(); showOk("Budget month updated."); }
+    catch (e) { alert(e.message); }
+  };
   d.querySelector("#x").onclick = () => d.close();
   d.querySelector("#s-monzo").onclick = async () => {
     try { const r = await api("/api/budget/monzo/connect", { method: "POST", body: {} }); location.href = r.url; } catch (e) { alert(e.message); }

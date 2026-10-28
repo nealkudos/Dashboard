@@ -173,3 +173,45 @@ export async function clearAccountRange(env, key, from, to) {
   if (removed) await unpairOrphans(env);
   return removed;
 }
+
+// ---------- Budget months: calendar, or payday to payday ----------
+// With a payday set (e.g. 28), "October" runs from the day September's pay lands to the day before October's pay lands
+// (paydays after the 15th name the month by where it ends; earlier paydays by where it starts). The edges follow the
+// real salary date when it came a few days early (weekends, bank holidays) or late.
+const addMonths = (ym, n) => { const [y, m] = ym.split("-").map(Number); const d = new Date(Date.UTC(y, m - 1 + n, 1)); return d.toISOString().slice(0, 7); };
+const isoDay = (ym, day) => { const [y, m] = ym.split("-").map(Number); const last = new Date(Date.UTC(y, m, 0)).getUTCDate(); return `${ym}-${String(Math.min(day, last)).padStart(2, "0")}`; };
+const shiftDay = (iso, n) => new Date(Date.parse(iso + "T12:00:00Z") + n * 86400000).toISOString().slice(0, 10);
+
+/** Dates salary arrived (pay-looking income of £300+, e.g. "Bank credit KUDOS AV"), oldest first. */
+export function payDates(txs) {
+  return [...new Set(txs.filter((t) => t.amount >= 300 && looksLikePay(t)).map((t) => t.date))].sort();
+}
+
+/** The payday to use: the one you set, or worked out from when salary has been landing (0 = calendar months). */
+export function effectivePayday(budget, pays) {
+  if (Number.isInteger(budget.payday)) return budget.payday;
+  const days = pays.slice(-6).map((d) => +d.slice(8, 10)).sort((a, b) => a - b);
+  return days.length >= 2 ? days[Math.floor(days.length / 2)] : 0;
+}
+
+function edge(label, payday, pays) {
+  const nominal = isoDay(payday > 15 ? addMonths(label, -1) : label, payday);
+  const near = pays.filter((d) => d >= shiftDay(nominal, -7) && d <= shiftDay(nominal, 3));
+  return near[0] || nominal;
+}
+
+/** { label, start, end } — end is exclusive. */
+export function periodFor(label, payday, pays) {
+  if (!payday) return { label, start: `${label}-01`, end: `${addMonths(label, 1)}-01` };
+  return { label, start: edge(label, payday, pays), end: edge(addMonths(label, 1), payday, pays) };
+}
+
+export function labelFor(date, payday, pays) {
+  const cal = date.slice(0, 7);
+  for (const l of [addMonths(cal, -1), cal, addMonths(cal, 1)]) {
+    const p = periodFor(l, payday, pays);
+    if (date >= p.start && date < p.end) return l;
+  }
+  return cal;
+}
+export { addMonths };

@@ -71,7 +71,7 @@ const DEFAULTS = {
   "bot-status": { x: 6, y: 13, w: 3, h: 8 },
   notes:    { x: 9, y: 13, w: 3, h: 8 },
   budget:   { w: 6, h: 8, autoPosition: true },
-  jobs:     { w: 12, h: 12, autoPosition: true },
+  jobs:     { w: 6, h: 4, autoPosition: true },
 };
 const SIZE_DEFAULT = { s: { w: 3, h: 6 }, m: { w: 6, h: 6 }, l: { w: 12, h: 6 } };
 

@@ -13,7 +13,7 @@ import { json, fail, readJson, sameOrigin, kv } from "../../_lib/core.js";
 import { randomId } from "../../_lib/crypto.js";
 import {
   getAccounts, putAccounts, getBudget, putBudget, getMonth, putMonth, makeTx, mergeTransactions,
-  categoryOf, merchantKey, CATEGORIES, purgeAccount, clearAccountRange,
+  categoryOf, merchantKey, CATEGORIES, purgeAccount, clearAccountRange, payDates, effectivePayday, periodFor, labelFor, addMonths,
 } from "../../_lib/budget.js";
 import { monzoConfigured, monzoConnectUrl, syncMonzo, monzoStatus, monzoDisconnect } from "../../_lib/monzo.js";
 
@@ -34,6 +34,7 @@ export async function onRequest({ request, env, params }) {
     }
     if (method === "POST" && route === "import") return importRows(request, env);
     if (method === "PUT" && route === "budgets") return setBudgets(request, env);
+    if (method === "PUT" && route === "settings") return setSettings(request, env);
     if (method === "POST" && route === "tx") return addManual(request, env);
     if (method === "DELETE" && parts[0] === "tx" && parts[1] && parts[2]) return deleteManual(env, parts[1], parts[2]);
     if (method === "PUT" && route === "goals") return setGoals(request, env);
@@ -49,9 +50,20 @@ const thisMonth = () => new Date().toLocaleDateString("en-CA", { timeZone: "Euro
 const round = (n) => Math.round(n * 100) / 100;
 
 async function summary(request, env) {
-  let month = new URL(request.url).searchParams.get("month") || thisMonth();
-  if (!/^\d{4}-\d{2}$/.test(month)) month = thisMonth();
-  const [accounts, budget, txs, monzo] = await Promise.all([getAccounts(env), getBudget(env), getMonth(env, month), monzoStatus(env)]);
+  const asked = new URL(request.url).searchParams.get("month");
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: "Europe/London" });
+  const [accounts, budget, monzo] = await Promise.all([getAccounts(env), getBudget(env), monzoStatus(env)]);
+
+  // Load the calendar months around the one we want, so a payday-to-payday month has everything it needs
+  const centre = /^\d{4}-\d{2}$/.test(asked || "") ? asked : today.slice(0, 7);
+  const cal = [-2, -1, 0, 1].map((n) => addMonths(centre, n));
+  const loaded = (await Promise.all(cal.map((m) => getMonth(env, m)))).flat();
+  const pays = payDates(loaded);
+  const payday = effectivePayday(budget, pays);
+  const current = labelFor(today, payday, pays);
+  const month = /^\d{4}-\d{2}$/.test(asked || "") ? asked : current;
+  const period = periodFor(month, payday, pays);
+  const txs = loaded.filter((t) => t.date >= period.start && t.date < period.end).sort((a, b) => b.date.localeCompare(a.date));
   const acctName = Object.fromEntries(accounts.map((a) => [a.key, `${a.bank} ${a.name}${a.mask ? ` ••${a.mask}` : ""}`]));
   acctName.manual = "Added by you";
 
@@ -77,6 +89,9 @@ async function summary(request, env) {
   return json({
     ok: true,
     month,
+    current,
+    period: { start: period.start, end: period.end },
+    payday, paydaySet: Number.isInteger(budget.payday),
     totals: {
       income: round(income), spent: round(spent), left: round(income - spent),
       budget: round(Object.values(budget.budgets).reduce((s, v) => s + (+v || 0), 0)),
@@ -222,4 +237,17 @@ async function setGoals(request, env) {
   }
   await kv(env).put("budget:goals", JSON.stringify(clean));
   return json({ ok: true, goals: clean });
+}
+
+async function setSettings(request, env) {
+  const { payday } = await readJson(request);
+  const b = await getBudget(env);
+  if (payday === "auto" || payday === null) delete b.payday;
+  else {
+    const n = parseInt(payday, 10);
+    if (!(n >= 0 && n <= 31)) return fail("Payday must be a day of the month (1–31), or 0 for calendar months");
+    b.payday = n;
+  }
+  await putBudget(env, b);
+  return json({ ok: true });
 }
