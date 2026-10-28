@@ -6,7 +6,7 @@
   var saved = null;
   try { saved = localStorage.getItem("theme"); } catch (e) {}
   var sysDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
-  var current = saved === "light" || saved === "dark" ? saved : (sysDark ? "dark" : "light");
+  var current = saved === "light" || saved === "dark" ? saved : "dark";   // dark blue & black by default
   root.setAttribute("data-theme", current);
 
   function paint() {
@@ -17,7 +17,7 @@
       b.setAttribute("aria-label", b.title);
     });
     document.querySelectorAll('meta[name="theme-color"]').forEach(function (m) {
-      m.setAttribute("content", t === "dark" ? "#111214" : "#f4f3ef");
+      m.setAttribute("content", t === "dark" ? "#05070c" : "#eef2f9");
       m.removeAttribute("media");
     });
   }
