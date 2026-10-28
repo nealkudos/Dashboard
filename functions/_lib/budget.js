@@ -64,10 +64,14 @@ export function autoCategory(tx) {
   return tx.amount > 0 ? "Income" : "Other";
 }
 
+// Money moving between your own accounts (e.g. "Payment to NEAL CHAUHAN") is never spending or income
+const SELF = /\b(neal\s+a?\s*chauhan|n\s*a\s+chauhan|mr\s+n\s+(a\s+)?chauhan|chauhan\s+n(eal)?)\b/i;
+const looksLikeSelf = (tx) => SELF.test(`${tx.desc || ""} ${tx.note || ""}`);
 const looksLikePay = (tx) => tx.amount > 0 && RULES[0][1].test(`${tx.desc || ""} ${tx.note || ""}`);
 
 export function categoryOf(tx, budget) {
-  return budget.overrides[tx.id] || budget.rules[merchantKey(tx.desc)] || (looksLikePay(tx) ? "Income" : null) || tx.auto || autoCategory(tx);
+  return budget.overrides[tx.id] || budget.rules[merchantKey(tx.desc)] || (looksLikePay(tx) ? "Income" : null) ||
+    (looksLikeSelf(tx) ? "Transfers" : null) || tx.auto || autoCategory(tx);
 }
 
 export function markTransfers(list) {
