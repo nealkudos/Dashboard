@@ -72,7 +72,7 @@ async function summary(request, env) {
   const list = txs.map((t) => {
     const cat = categoryOf(t, budget);
     if (cat !== "Transfers") {
-      if (cat === "Income" || (t.amount > 0 && cat === "Other")) income += t.amount;
+      if (cat === "Income") income += t.amount;
       else { spent -= t.amount; byCat[cat] = (byCat[cat] || 0) - t.amount; }   // refunds in a category reduce it
     }
     return { id: t.id, date: t.date, amount: t.amount, desc: t.desc, note: t.note, cat, account: acctName[t.acct] || "Removed account", manual: t.acct === "manual" };

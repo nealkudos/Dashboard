@@ -61,7 +61,7 @@ export function autoCategory(tx) {
     const n = parseInt(tx.mcc, 10);
     for (const [codes, cat] of MCC) if (codes.includes(n)) return cat;
   }
-  return tx.amount > 0 ? "Income" : "Other";
+  return tx.amount > 0 ? "Transfers" : "Other";   // money in that isn't pay is a transfer until you say otherwise
 }
 
 // Money moving between your own accounts (e.g. "Payment to NEAL CHAUHAN") is never spending or income
@@ -70,8 +70,13 @@ const looksLikeSelf = (tx) => SELF.test(`${tx.desc || ""} ${tx.note || ""}`);
 const looksLikePay = (tx) => tx.amount > 0 && RULES[0][1].test(`${tx.desc || ""} ${tx.note || ""}`);
 
 export function categoryOf(tx, budget) {
-  return budget.overrides[tx.id] || budget.rules[merchantKey(tx.desc)] || (looksLikePay(tx) ? "Income" : null) ||
-    (looksLikeSelf(tx) ? "Transfers" : null) || tx.auto || autoCategory(tx);
+  const chosen = budget.overrides[tx.id] || budget.rules[merchantKey(tx.desc)];
+  if (chosen) return chosen;                                   // you picked it: always wins
+  if (looksLikePay(tx)) return "Income";
+  if (looksLikeSelf(tx)) return "Transfers";
+  const auto = tx.auto || autoCategory(tx);
+  // Only pay counts as income automatically; any other money in (transfers, cash paid in) is a transfer
+  return auto === "Income" && tx.acct !== "manual" ? "Transfers" : auto;
 }
 
 export function markTransfers(list) {

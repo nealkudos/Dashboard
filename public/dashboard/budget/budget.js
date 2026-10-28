@@ -198,7 +198,7 @@ function drawCalendar() {
   for (const t of data.transactions) {
     if (t.cat === "Transfers") continue;
     const d = (byDay[t.date] ||= { in: 0, out: 0 });
-    if (t.amount > 0 && (t.cat === "Income" || t.cat === "Other")) d.in += t.amount; else d.out -= t.amount;
+    if (t.cat === "Income") d.in += t.amount; else d.out -= t.amount;
   }
   const maxOut = Math.max(1, ...Object.values(byDay).map((d) => d.out));
   const inPeriod = (d) => d >= data.period.start && d < data.period.end;
