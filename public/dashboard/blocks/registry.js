@@ -15,6 +15,7 @@ import botStatus from "./bot-status.js";
 import budget from "./budget.js";
 import football from "./football.js";
 import jobs from "./jobs.js";
+import insights from "./insights.js";
 
 export default [
   welcome,
@@ -23,6 +24,7 @@ export default [
   scanner,
   botStatus,
   budget,
+  insights,
   football,
   jobs,
   links,

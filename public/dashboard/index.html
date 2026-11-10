@@ -12,35 +12,59 @@
   <link rel="icon" href="/assets/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/assets/icon-180.png">
   <link rel="stylesheet" href="/assets/vendor/gridstack.min.css">
-  <link rel="stylesheet" href="/assets/app.css?v=1794351293">
-  <script src="/assets/theme.js?v=1794351293"></script>
+  <link rel="stylesheet" href="/assets/app.css?v=1794351646">
+  <script src="/assets/theme.js?v=1794351646"></script>
   <title>Dashboard</title>
 </head>
-<body>
-  <header class="top">
-    <div class="top-inner">
-      <div class="brand"><div class="brand-mark">N</div><div class="brand-name">Dashboard</div></div>
-      <div class="spacer"></div>
-      <button class="ghost icon theme-btn" type="button"></button>
-      <div class="menu">
-        <button class="ghost icon" id="menu-btn" aria-haspopup="true" aria-expanded="false">Menu ▾</button>
-        <div class="menu-panel" id="menu" hidden>
-          <div class="note" id="rotate-note"></div>
-          <button id="m-edit">Edit layout</button>
-          <button id="m-rotate">Change authenticator now</button>
-          <div class="sep"></div>
-          <button id="m-logout">Sign out</button>
-          <button id="m-logout-all">Sign out on all devices</button>
+<body class="hq">
+  <div class="shell">
+    <aside class="side" aria-label="Sections">
+      <div class="side-brand"><div class="brand-mark">N</div><div><b>Neal's HQ</b><small>Personal dashboard</small></div></div>
+      <nav>
+        <div class="side-h">Main</div>
+        <a href="#" data-jump="top" class="on"><svg viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5M5.5 10v9.5h13V10"/></svg>Overview</a>
+        <a href="/dashboard/budget/"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="3"/><path d="M3 10h18M16 15h2"/></svg>Budget</a>
+        <a href="#" data-jump="calendar"><svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>Calendar</a>
+        <div class="side-h">Trading</div>
+        <a href="#" data-jump="trading"><svg viewBox="0 0 24 24"><path d="M4 19V5M4 19h16M8 15l3-4 3 2 5-6"/></svg>Markets</a>
+        <a href="#" data-jump="bot-status"><svg viewBox="0 0 24 24"><rect x="5" y="8" width="14" height="11" rx="3"/><path d="M12 4v4M9 13h.01M15 13h.01"/></svg>Bot status</a>
+        <div class="side-h">Work</div>
+        <a href="https://kudos-jobs-board-j5fr.pages.grok.bot/" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2.5"/><path d="M9 3v4M15 3v4M8 12h8M8 16h5"/></svg>Jobs board ↗</a>
+        <a href="#" data-jump="links"><svg viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1 1M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1-1"/></svg>Quick links</a>
+      </nav>
+      <div class="side-foot"><div class="avatar">NC</div><div><b>Neal Chauhan</b><small id="side-note">Signed in</small></div></div>
+    </aside>
+
+    <div class="main-col">
+      <header class="top">
+        <div class="top-inner">
+          <div class="brand mobile-only"><div class="brand-mark">N</div></div>
+          <div class="hello"><div id="hello">Hello, Neal</div><small id="today"></small></div>
+          <div class="spacer"></div>
+          <button class="ghost icon theme-btn" type="button"></button>
+          <div class="menu">
+            <button class="ghost icon" id="menu-btn" aria-haspopup="true" aria-expanded="false" aria-label="Menu"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg><span class="menu-word">Menu</span></button>
+            <div class="menu-panel" id="menu" hidden>
+              <div class="note" id="rotate-note"></div>
+              <button id="m-edit">Edit layout</button>
+              <button id="m-rotate">Change authenticator now</button>
+              <div class="sep"></div>
+              <button id="m-logout">Sign out</button>
+              <button id="m-logout-all">Sign out on all devices</button>
+            </div>
+          </div>
         </div>
-      </div>
+      </header>
+
+      <div class="banner" id="flash" hidden></div>
+
+      <section class="kpis" id="kpis" aria-label="At a glance"></section>
+
+      <main class="dash">
+        <div class="grid-stack" id="grid"></div>
+      </main>
     </div>
-  </header>
-
-  <div class="banner" id="flash" hidden></div>
-
-  <main class="dash">
-    <div class="grid-stack" id="grid"></div>
-  </main>
+  </div>
 
   <div class="editbar" id="editbar" hidden>
     <span>Drag a block by its title · drag a corner to resize</span>

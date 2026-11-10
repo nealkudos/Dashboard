@@ -24,6 +24,7 @@ export async function onRequest({ request, env, params }) {
   if (method !== "GET" && !sameOrigin(request)) return fail("Bad origin", 403);
   try {
     if (method === "GET" && route === "summary") return summary(request, env);
+    if (method === "GET" && route === "trend") return trend(request, env);
     if (method === "POST" && route === "monzo/connect") {
       if (!monzoConfigured(env)) return fail("Monzo isn't set up yet — add MONZO_CLIENT_ID and MONZO_CLIENT_SECRET in Cloudflare.", 503);
       return json({ ok: true, url: await monzoConnectUrl(env, new URL(request.url).origin) });
@@ -250,4 +251,31 @@ async function setSettings(request, env) {
   }
   await putBudget(env, b);
   return json({ ok: true });
+}
+
+// GET /api/budget/trend?n=6 — income and spending for the last n budget months (for the dashboard chart)
+async function trend(request, env) {
+  const n = Math.min(12, Math.max(2, parseInt(new URL(request.url).searchParams.get("n") || "6", 10) || 6));
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: "Europe/London" });
+  const budget = await getBudget(env);
+  const cal = [];
+  for (let i = -(n + 1); i <= 1; i++) cal.push(addMonths(today.slice(0, 7), i));
+  const loaded = (await Promise.all(cal.map((m) => getMonth(env, m)))).flat();
+  const pays = payDates(loaded);
+  const payday = effectivePayday(budget, pays);
+  const current = labelFor(today, payday, pays);
+  const months = [];
+  for (let i = n - 1; i >= 0; i--) {
+    const label = addMonths(current, -i);
+    const p = periodFor(label, payday, pays);
+    let income = 0, spent = 0;
+    for (const t of loaded) {
+      if (t.date < p.start || t.date >= p.end) continue;
+      const cat = categoryOf(t, budget);
+      if (cat === "Transfers") continue;
+      if (cat === "Income") income += t.amount; else spent -= t.amount;
+    }
+    months.push({ month: label, start: p.start, end: p.end, income: round(income), spent: round(spent) });
+  }
+  return json({ ok: true, current, payday, months });
 }

@@ -1,5 +1,6 @@
 // Dashboard shell: loads blocks from blocks/registry.js, lays them out, handles edit mode + menu.
 import BLOCKS from "./blocks/registry.js";
+import { startKpis } from "./kpis.js";
 
 const $ = (id) => document.getElementById(id);
 let prefs = { layout: {}, hidden: [] };
@@ -72,6 +73,7 @@ const DEFAULTS = {
   notes:    { x: 9, y: 13, w: 3, h: 8 },
   budget:   { w: 6, h: 8, autoPosition: true },
   jobs:     { w: 6, h: 4, autoPosition: true },
+  insights: { x: 0, y: 0, w: 12, h: 10 },
 };
 const SIZE_DEFAULT = { s: { w: 3, h: 6 }, m: { w: 6, h: 6 }, l: { w: 12, h: 6 } };
 
@@ -197,7 +199,7 @@ document.addEventListener("click", (e) => { if (!menu.contains(e.target)) menu.h
 
 $("m-edit").onclick = () => { menu.hidden = true; setEditing(true); };
 $("e-done").onclick = () => setEditing(false);
-$("e-reset").onclick = () => { prefs = { layout: {}, hidden: [] }; savePrefs(); renderAll(); };
+$("e-reset").onclick = () => { prefs = { layout: {}, hidden: ["welcome"], hq: 1 }; savePrefs(); renderAll(); };
 
 $("m-rotate").onclick = async () => {
   try {
@@ -220,11 +222,32 @@ $("m-logout-all").onclick = () => signOut(true);
   if (!s.signedIn) return location.replace("/");
   me = { email: s.email, daysLeft: s.daysLeft, rotateDays: s.rotateDays };
   $("rotate-note").textContent = `Authenticator change in ${s.daysLeft} day${s.daysLeft === 1 ? "" : "s"}`;
+  $("side-note").textContent = `Authenticator change in ${s.daysLeft}d`;
 
   const f = sessionStorage.getItem("dash-flash");
   if (f) { sessionStorage.removeItem("dash-flash"); flash(f); }
   else if (s.daysLeft <= 3) flash(`Heads up: your authenticator change is due in ${s.daysLeft} day${s.daysLeft === 1 ? "" : "s"}.`);
 
-  try { const p = (await call("/api/prefs")).prefs || {}; prefs = { layout: p.layout || {}, hidden: p.hidden || [] }; } catch {}
+  try {
+    const p = (await call("/api/prefs")).prefs || {};
+    prefs = { layout: p.layout || {}, hidden: p.hidden || [], hq: p.hq };
+    // The greeting bar now shows the time, so the old "Today" block starts hidden (bring it back in Edit layout)
+    if (!prefs.hq) { prefs.hq = 1; if (!prefs.hidden.includes("welcome")) prefs.hidden.push("welcome"); savePrefs(); }
+  } catch {}
+  startKpis((path) => call(path));
   await renderAll();
 })();
+
+// ---------- Greeting + sidebar ----------
+function hello() {
+  const now = new Date(), h = now.getHours();
+  $("hello").textContent = `${h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening"}, Neal`;
+  $("today").textContent = now.toLocaleDateString("en-GB", { weekday: innerWidth < 500 ? "short" : "long", day: "numeric", month: innerWidth < 500 ? "short" : "long" }) + " · " + now.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+}
+hello(); setInterval(hello, 15000);
+document.querySelectorAll("[data-jump]").forEach((a) => (a.onclick = (e) => {
+  e.preventDefault();
+  document.querySelectorAll(".side nav a").forEach((x) => x.classList.toggle("on", x === a));
+  const t = a.dataset.jump === "top" ? null : document.querySelector(`[data-block="${a.dataset.jump}"]`);
+  if (t) t.scrollIntoView({ behavior: "smooth", block: "start" }); else window.scrollTo({ top: 0, behavior: "smooth" });
+}));
