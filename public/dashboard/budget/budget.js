@@ -120,7 +120,9 @@ function statementsCard() {
   const f = (d) => fmtDay(d, { day: "numeric", month: "short", year: "numeric" });
   return `<div class="card stmts"><div class="card-h"><h3>📄 Statements to upload</h3></div>
     ${due.map(({ a, from }) => `<div class="stmt"><div class="mid"><div class="d">${esc(a.bank)} ${esc(a.name)}${a.mask ? ` ••${esc(a.mask)}` : ""}</div>
-      <div class="m">${from ? `Next one from <b>${f(from)}</b> to today · last one ended ${fmtDay(a.latest, { day: "numeric", month: "short" })}` : "Upload your first statement"}</div></div>
+      <div class="m">${from ? `Next one from <b>${f(from)}</b> to today · last one ended ${fmtDay(a.latest, { day: "numeric", month: "short" })}` : "Upload your first statement"}</div>
+      ${/nationwide/i.test(a.bank) ? `<div class="m tip">No need to wait for the statement: on the Nationwide website, open the account → <b>Download transactions</b> → CSV, from ${from ? f(from) : "the start"} to today. When the statement comes out, upload it and it replaces those dates.</div>`
+        : /american express|amex/i.test(a.bank) ? `<div class="m tip">On the Amex website: Statements &amp; activity → <b>Download</b> → CSV covers recent purchases before the statement is out.</div>` : ""}</div>
       <button type="button" data-upl="${esc(a.key)}">Upload</button></div>`).join("")}
   </div>`;
 }

@@ -183,3 +183,5 @@ button.link { background: none; color: var(--accent); padding: 4px 0; font-weigh
 .stmts .stmt button { padding: 7px 12px; font-size: 13px; flex: none; }
 .cycle { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
 .cycle select, .cycle input { width: auto !important; }
+
+.stmts .stmt .m.tip { margin-top: 4px; font-size: 12px; line-height: 1.45; opacity: .9; }
