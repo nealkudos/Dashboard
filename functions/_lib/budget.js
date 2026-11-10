@@ -169,14 +169,14 @@ async function unpairOrphans(env) {
 }
 
 /** A statement is the full record for its dates: clear what an earlier upload put there for this account before re-adding. */
-export async function clearAccountRange(env, key, from, to) {
+export async function clearAccountRange(env, key, from, to, { onlyQuick = false } = {}) {
   let removed = 0;
   const [y0, m0] = from.split("-").map(Number);
   const [y1, m1] = to.split("-").map(Number);
   for (let y = y0, m = m0; y < y1 || (y === y1 && m <= m1); m === 12 ? (y++, m = 1) : m++) {
     const ym = `${y}-${String(m).padStart(2, "0")}`;
     const txs = await getMonth(env, ym);
-    const keep = txs.filter((t) => !(t.acct === key && t.date >= from && t.date <= to));
+    const keep = txs.filter((t) => !(t.acct === key && t.date >= from && t.date <= to && (!onlyQuick || t.quick)));
     if (keep.length !== txs.length) { removed += txs.length - keep.length; await putMonth(env, ym, keep); }
   }
   if (removed) await unpairOrphans(env);

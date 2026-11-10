@@ -10,7 +10,7 @@
 //   DELETE /api/budget/tx/:month/:id           remove one you added by hand
 //   PUT    /api/budget/goals   {goals:[{id?, name, emoji, target, saved, due?}]}   savings goals
 import { json, fail, readJson, sameOrigin, kv } from "../../_lib/core.js";
-import { randomId } from "../../_lib/crypto.js";
+import { randomId, sha256Hex } from "../../_lib/crypto.js";
 import {
   getAccounts, putAccounts, getBudget, putBudget, getMonth, putMonth, makeTx, mergeTransactions,
   categoryOf, merchantKey, CATEGORIES, purgeAccount, clearAccountRange, payDates, effectivePayday, periodFor, labelFor, addMonths,
@@ -25,6 +25,26 @@ export async function onRequest({ request, env, params }) {
   try {
     if (method === "GET" && route === "summary") return summary(request, env);
     if (method === "GET" && route === "trend") return trend(request, env);
+    // Screenshots sent by the iPhone Shortcut, waiting to be read
+    if (method === "GET" && route === "screens") {
+      const l = await kv(env).list({ prefix: "shot:" });
+      return json({ ok: true, screens: l.keys.map((k) => k.name.slice(5)).sort(), shortcut: !!(await kv(env).get("shortcut:key")) });
+    }
+    if (method === "GET" && parts[0] === "screens" && parts[1]) {
+      const { value, metadata } = await kv(env).getWithMetadata(`shot:${parts[1]}`, "arrayBuffer");
+      if (!value) return fail("Not found", 404);
+      return new Response(value, { headers: { "content-type": metadata?.type || "image/jpeg", "cache-control": "no-store" } });
+    }
+    if (method === "DELETE" && route === "screens") {
+      const l = await kv(env).list({ prefix: "shot:" });
+      await Promise.all(l.keys.map((k) => kv(env).delete(k.name)));
+      return json({ ok: true, deleted: l.keys.length });
+    }
+    if (method === "POST" && route === "shortcut-key") {
+      const key = "nb_" + randomId(24);
+      await kv(env).put("shortcut:key", await sha256Hex(key));
+      return json({ ok: true, key });
+    }
     if (method === "POST" && route === "monzo/connect") {
       if (!monzoConfigured(env)) return fail("Monzo isn't set up yet — add MONZO_CLIENT_ID and MONZO_CLIENT_SECRET in Cloudflare.", 503);
       return json({ ok: true, url: await monzoConnectUrl(env, new URL(request.url).origin) });
@@ -86,6 +106,7 @@ async function summary(request, env) {
 
   // Latest transaction per uploaded account, so you know when a new statement is due
   const latest = await kv(env).get("budget:latest", "json") || {};
+  const quickUpTo = await kv(env).get("budget:quick", "json") || {};
 
   return json({
     ok: true,
@@ -101,7 +122,7 @@ async function summary(request, env) {
     categories,
     allCategories: CATEGORIES,
     transactions: list,
-    accounts: accounts.map((a) => ({ ...a, balance: budget.balances[a.key] || null, latest: latest[a.key] || null })),
+    accounts: accounts.map((a) => ({ ...a, balance: budget.balances[a.key] || null, latest: latest[a.key] || null, quickLatest: quickUpTo[a.key] && quickUpTo[a.key] > (latest[a.key] || "") ? quickUpTo[a.key] : null })),
     monzo: { configured: monzoConfigured(env), ...monzo },
     goals: (await kv(env).get("budget:goals", "json")) || [],
     lastSync: budget.lastSync,
@@ -125,6 +146,13 @@ async function importRows(request, env) {
     await putAccounts(env, accounts);
   }
 
+  // Screenshots fill the gap until the statement is out: they only add days after the last statement,
+  // replace earlier screenshots of the same days, and get replaced by the statement when you upload it.
+  const quick = !!body.quick;
+  const latestMap = await kv(env).get("budget:latest", "json") || {};
+  const quickMap = await kv(env).get("budget:quick", "json") || {};
+  const stmtUpTo = latestMap[acct.key] || "";
+
   const seen = {};
   const txs = [];
   let latest = "";
@@ -132,15 +160,18 @@ async function importRows(request, env) {
     const date = String(r.date || "");
     const amount = Number(r.amount);
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !isFinite(amount) || amount === 0) continue;
+    if (quick && stmtUpTo && date <= stmtUpTo) continue;     // already covered by a statement
     const k = `${date}|${amount}|${String(r.desc || "").toLowerCase().trim()}`;
     const seq = (seen[k] = (seen[k] ?? -1) + 1);         // two identical coffees on the same day stay as two
-    txs.push(await makeTx(acct.key, { date, amount, desc: r.desc, note: r.note }, seq));
+    const tx = await makeTx(acct.key, { date, amount, desc: r.desc, note: r.note }, seq);
+    if (quick) tx.quick = true;
+    txs.push(tx);
     if (date > latest) latest = date;
   }
-  if (!txs.length) return fail("Couldn't read any transactions from that file.");
+  if (!txs.length) return fail(quick ? "Everything in those screenshots is already covered by a statement." : "Couldn't read any transactions from that file.");
   // Re-uploading a statement replaces what an earlier upload of the same dates put there (so fixes to the reader take effect)
   const dates = txs.map((t) => t.date).sort();
-  const cleared = await clearAccountRange(env, acct.key, dates[0], dates[dates.length - 1]);
+  const cleared = await clearAccountRange(env, acct.key, dates[0], dates[dates.length - 1], { onlyQuick: quick });
   const added = Math.max(0, (await mergeTransactions(env, txs)) - cleared);
 
   const budget = await getBudget(env);
@@ -148,8 +179,9 @@ async function importRows(request, env) {
     budget.balances[acct.key] = { amount: Number(body.balance), at: new Date().toISOString(), asOf: latest };
     await putBudget(env, budget);
   }
-  const latestMap = await kv(env).get("budget:latest", "json") || {};
-  if (!latestMap[acct.key] || latest > latestMap[acct.key]) { latestMap[acct.key] = latest; await kv(env).put("budget:latest", JSON.stringify(latestMap)); }
+  if (quick) {
+    if (!quickMap[acct.key] || latest > quickMap[acct.key]) { quickMap[acct.key] = latest; await kv(env).put("budget:quick", JSON.stringify(quickMap)); }
+  } else if (!latestMap[acct.key] || latest > latestMap[acct.key]) { latestMap[acct.key] = latest; await kv(env).put("budget:latest", JSON.stringify(latestMap)); }
   return json({ ok: true, account: acct.key, read: txs.length, added, skipped: txs.length - added });
 }
 

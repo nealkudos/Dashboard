@@ -33,6 +33,7 @@ let view = "home";
 let data = null;
 let selDay = null;
 let catFilter = "";
+let waitingScreens = [];     // screenshots the iPhone Shortcut sent, waiting to be read
 
 // ---------- API ----------
 async function api(path, opts = {}) {
@@ -113,15 +114,17 @@ function statementsCard() {
   const today = todayStr();
   const due = data.accounts.filter((a) => a.source === "upload").map((a) => {
     const from = a.latest ? nextDay(a.latest) : null;
-    const gap = a.latest ? Math.round((Date.parse(today) - Date.parse(a.latest)) / 86400000) : 999;
+    const upTo = a.quickLatest || a.latest;
+    const gap = upTo ? Math.round((Date.parse(today) - Date.parse(upTo)) / 86400000) : 999;
     return { a, from, gap };
-  }).filter((x) => x.gap > 3);
+  }).filter((x) => x.gap > 3 || x.a.quickLatest);
   if (!due.length) return "";
   const f = (d) => fmtDay(d, { day: "numeric", month: "short", year: "numeric" });
   return `<div class="card stmts"><div class="card-h"><h3>📄 Statements to upload</h3></div>
     ${due.map(({ a, from }) => `<div class="stmt"><div class="mid"><div class="d">${esc(a.bank)} ${esc(a.name)}${a.mask ? ` ••${esc(a.mask)}` : ""}</div>
       <div class="m">${from ? `Next one from <b>${f(from)}</b> to today · last one ended ${fmtDay(a.latest, { day: "numeric", month: "short" })}` : "Upload your first statement"}</div>
-      ${/nationwide/i.test(a.bank) ? `<div class="m tip">No need to wait for the statement: on the Nationwide website, open the account → <b>Download transactions</b> → CSV, from ${from ? f(from) : "the start"} to today. When the statement comes out, upload it and it replaces those dates.</div>`
+      ${a.quickLatest ? `<div class="m tip">📸 Screenshots added up to <b>${fmtDay(a.quickLatest, { day: "numeric", month: "short" })}</b>. ${Math.round((Date.parse(today) - Date.parse(a.quickLatest)) / 86400000) > 3 ? `Add newer ones from ${fmtDay(nextDay(a.quickLatest), { day: "numeric", month: "short" })}, or upload` : "Upload"} the statement when it's out — it replaces them.</div>`
+        : /nationwide/i.test(a.bank) ? `<div class="m tip">Statement not out yet? Screenshot your transactions in the Nationwide app from ${from ? f(from) : "the start"} and upload the screenshots here. When the statement comes out, upload it and it replaces them.</div>`
         : /american express|amex/i.test(a.bank) ? `<div class="m tip">On the Amex website: Statements &amp; activity → <b>Download</b> → CSV covers recent purchases before the statement is out.</div>` : ""}</div>
       <button type="button" data-upl="${esc(a.key)}">Upload</button></div>`).join("")}
   </div>`;
@@ -139,6 +142,7 @@ function drawHome() {
   const alerts = [];
   if (!data.accounts.length && !data.transactions.length) alerts.push(["👋", "Connect Monzo or upload a statement to get started", "Set up", openSettings]);
   if (data.monzo.connected && data.monzo.waiting) alerts.push(["📱", "Monzo is waiting for you to approve access in the app", "Check", () => sync(true)]);
+  if (waitingScreens.length) alerts.push(["📸", `${waitingScreens.length} screenshot${waitingScreens.length === 1 ? "" : "s"} from your iPhone ready to read`, "Read", () => upload(null, { screens: true })]);
   $("h-alerts").innerHTML = alerts.map(([e, m, b], i) => `<div class="alert"><span>${e}</span><span>${esc(m)}</span><button type="button" data-a="${i}">${b}</button></div>`).join("") + statementsCard();
   $("h-alerts").querySelectorAll("[data-a]").forEach((b) => (b.onclick = alerts[b.dataset.a][3]));
   $("h-alerts").querySelectorAll("[data-upl]").forEach((b) => (b.onclick = () => upload(b.dataset.upl)));
@@ -491,7 +495,30 @@ function openSettings() {
       <span id="s-pd-wrap">payday <input type="text" inputmode="numeric" id="s-pd" maxlength="2" style="width:56px !important;text-align:center" value="${data.payday || 28}"></span>
       <button type="button" id="s-cyc-save" style="padding:8px 12px">Save</button>
     </div>
+    <h3 style="margin-top:20px">iPhone Shortcut</h3>
+    <div class="muted small">Screenshot your transactions in the Nationwide app, run the Shortcut, and it sends them here and deletes them from your Photos.</div>
+    <div class="actions" style="justify-content:flex-start"><button class="ghost" type="button" id="s-key">Make a Shortcut key</button></div>
+    <div id="s-key-out"></div>
     <div class="actions"><button class="ghost" type="button" id="x">Done</button></div>`;
+  d.querySelector("#s-key").onclick = async () => {
+    if (!confirm("Make a new Shortcut key? Any older key stops working.")) return;
+    try {
+      const { key } = await api("/api/budget/shortcut-key", { method: "POST", body: {} });
+      d.querySelector("#s-key-out").innerHTML = `<div class="small" style="margin-top:8px">Your key (shown once — copy it into the Shortcut):</div>
+        <div style="display:flex;gap:8px;margin-top:6px"><input type="text" readonly value="${esc(key)}" id="s-key-val" style="font-family:ui-monospace,monospace;font-size:13px !important"><button type="button" id="s-key-copy">Copy</button></div>
+        <ol class="small muted shortcut-steps">
+          <li>Shortcuts app → <b>+</b> → name it <b>Send to Budget</b>.</li>
+          <li>Add <b>Select Photos</b> — turn on <b>Select Multiple</b>.</li>
+          <li>Add <b>Repeat with Each</b> (Photos). Inside it add <b>Convert Image</b> → JPEG, then <b>Get Contents of URL</b>:
+            URL <code>https://nealchauhan.co.uk/api/shortcut/screenshot</code>, Method <b>POST</b>,
+            Header <code>Authorization</code> = <code>Bearer</code> + space + your key, Request Body <b>File</b> → Converted Image.</li>
+          <li>After End Repeat add <b>Delete Photos</b> → Photos (from Select Photos).</li>
+          <li>Add <b>Open URLs</b> → <code>https://nealchauhan.co.uk/dashboard/budget/?screens=1</code></li>
+        </ol>
+        <div class="small muted">Then: take your screenshots → run <b>Send to Budget</b> → pick them → check and Import here.</div>`;
+      d.querySelector("#s-key-copy").onclick = async () => { try { await navigator.clipboard.writeText(key); d.querySelector("#s-key-copy").textContent = "Copied"; } catch { d.querySelector("#s-key-val").select(); } };
+    } catch (e) { alert(e.message); }
+  };
   const cyc = d.querySelector("#s-cycle"), pdWrap = d.querySelector("#s-pd-wrap");
   cyc.value = data.payday ? "pay" : "cal";
   pdWrap.hidden = cyc.value !== "pay";
@@ -539,22 +566,22 @@ async function waitForApproval() {
   showErr("Still waiting for the Monzo approval. Approve it in the app, then use Sync Monzo now.");
 }
 
-function upload(acctKey) {
+function upload(acctKey, { screens = false } = {}) {
   const d = $("dlg");
   const ups = data.accounts.filter((a) => a.source === "upload");
   d.innerHTML = `<h3>Upload a statement</h3>
-    <div class="muted small">PDF or CSV statement from your bank's app or website. It's read on this device first so you can check it.</div>
+    <div class="muted small">A PDF or CSV statement, or <b>screenshots</b> of your transactions in the bank's app (for recent ones before the statement is out). It's all read on this device first so you can check it.</div>
     <label class="fld"><span>Which account?</span><select id="u-acct">
       ${ups.map((a) => `<option value="${esc(a.key)}">${esc(a.bank)} ${esc(a.name)}${a.mask ? ` ••${esc(a.mask)}` : ""}</option>`).join("")}
       ${PRESETS.map((p) => `<option value="new:${p.id}">New: ${esc(p.bank)} ${esc(p.name)}</option>`).join("")}
     </select></label>
     <label class="fld" id="u-name-wrap" hidden><span>Name it (e.g. "Credit card", "Joint")</span><input type="text" id="u-name" maxlength="40"></label>
-    <div class="drop" id="u-drop">Tap to choose a PDF or CSV statement<input type="file" id="u-file" accept=".pdf,application/pdf,.csv,text/csv" hidden></div>
+    <div class="drop" id="u-drop">Tap to choose a statement or screenshots<input type="file" id="u-file" accept=".pdf,application/pdf,.csv,text/csv,image/*" multiple hidden></div>
     <div id="u-prev"></div>
     <div class="actions"><button class="ghost" type="button" id="x">Cancel</button><button type="button" id="u-go" disabled>Import</button></div>`;
   const sel = d.querySelector("#u-acct"), nameWrap = d.querySelector("#u-name-wrap"), nameIn = d.querySelector("#u-name");
   const fileIn = d.querySelector("#u-file"), drop = d.querySelector("#u-drop"), prev = d.querySelector("#u-prev"), go2 = d.querySelector("#u-go");
-  let parsed = null, file = null, flip = false;
+  let parsed = null, file = null, files = [], flip = false, fromShortcut = false;
   const preset = () => {
     const v = sel.value;
     if (v.startsWith("new:")) return PRESETS.find((p) => p.id === v.slice(4));
@@ -563,10 +590,34 @@ function upload(acctKey) {
     return PRESETS.find((p) => p.bank === a?.bank) || PRESETS.at(-1);
   };
   const syncName = () => { const isNew = sel.value.startsWith("new:"); nameWrap.hidden = !isNew; if (isNew) nameIn.value = preset().name; };
-  sel.value = acctKey || ups[0]?.key || "new:nationwide";
+  sel.value = acctKey || (screens && ups.find((a) => /nationwide/i.test(a.bank) && /current/i.test(a.name))?.key) || ups[0]?.key || "new:nationwide";
   syncName();
   const fmt = (x) => fmtDay(x, { day: "numeric", month: "short", year: "numeric" });
+  const isImage = (f) => /^image\//.test(f.type) || /\.(png|jpe?g|heic|webp)$/i.test(f.name);
+  function drawImageRows() {
+    // Screenshots: every row is shown; tap the amount to switch in/out, ✕ to drop a row that was misread
+    const ins = parsed.rows.filter((r) => r.amount > 0).reduce((s, r) => s + r.amount, 0);
+    const outs = -parsed.rows.filter((r) => r.amount < 0).reduce((s, r) => s + r.amount, 0);
+    prev.innerHTML = `<div class="small" style="margin-top:12px">${parsed.rows.length} transactions read, ${fmt(parsed.from)} – ${fmt(parsed.to)}<br>
+      Money out <b>${gbp(outs)}</b> · money in <b class="up">${gbp(ins)}</b></div>
+      <div class="small muted" style="margin-top:4px">Check them: tap an amount to switch it between in and out, ✕ to remove one.</div>
+      <div class="prev tall">${parsed.rows.map((r, i) => `<div class="tx"><div class="mid"><div class="d">${esc(r.desc)}</div><div class="m">${fmt(r.date)}${r.note ? ` · ${esc(r.note)}` : ""}</div></div>
+        <button type="button" class="a amt-btn ${r.amount > 0 ? "up" : ""}" data-flip="${i}">${gbp(r.amount, true)}</button>
+        <button type="button" class="rm-btn" data-rm="${i}" aria-label="Remove">✕</button></div>`).join("")}</div>`;
+    prev.querySelectorAll("[data-flip]").forEach((b) => (b.onclick = () => { const r = parsed.rows[b.dataset.flip]; r.amount = -r.amount; drawImageRows(); }));
+    prev.querySelectorAll("[data-rm]").forEach((b) => (b.onclick = () => { parsed.rows.splice(+b.dataset.rm, 1); if (!parsed.rows.length) { parsed = null; go2.disabled = true; prev.innerHTML = ""; return; } drawImageRows(); }));
+    go2.disabled = false;
+  }
   async function readIt() {
+    if (files.length && isImage(files[0])) {
+      prev.innerHTML = `<p class="small muted" style="margin-top:10px" id="u-status">Getting the screenshot reader ready… (first time takes a few seconds)</p>`; go2.disabled = true;
+      try {
+        const { readImageStatement } = await import("./statements-image.js");
+        parsed = await readImageStatement(files.filter(isImage), preset(), (msg) => { const st = prev.querySelector("#u-status"); if (st) st.textContent = msg; });
+        drawImageRows();
+      } catch (e) { parsed = null; prev.innerHTML = `<p class="small" style="color:var(--danger);margin-top:10px">${esc(e.message)}</p>`; }
+      return;
+    }
     if (!file) return;
     prev.innerHTML = `<p class="small muted" style="margin-top:10px">Reading ${esc(file.name)}…</p>`; go2.disabled = true;
     try {
@@ -586,13 +637,17 @@ function upload(acctKey) {
       prev.innerHTML = `<p class="small" style="color:var(--danger);margin-top:10px">${esc(e.message)}</p>`;
     }
   }
-  const take = (f) => { file = f; flip = false; drop.textContent = f.name; drop.append(fileIn); readIt(); };
-  sel.onchange = () => { syncName(); readIt(); };
+  const take = (list) => {
+    files = [...list]; file = files[0]; flip = false;
+    drop.textContent = fromShortcut ? `📸 ${files.length} screenshot${files.length === 1 ? "" : "s"} from your iPhone` : files.length > 1 ? `${files.length} screenshots` : file.name;
+    drop.append(fileIn); readIt();
+  };
+  sel.onchange = () => { syncName(); if (!(files.length && isImage(files[0]))) readIt(); };
   drop.onclick = () => fileIn.click();
-  fileIn.onchange = () => fileIn.files[0] && take(fileIn.files[0]);
+  fileIn.onchange = () => fileIn.files.length && take(fileIn.files);
   drop.ondragover = (e) => { e.preventDefault(); drop.classList.add("on"); };
   drop.ondragleave = () => drop.classList.remove("on");
-  drop.ondrop = (e) => { e.preventDefault(); drop.classList.remove("on"); e.dataTransfer.files[0] && take(e.dataTransfer.files[0]); };
+  drop.ondrop = (e) => { e.preventDefault(); drop.classList.remove("on"); e.dataTransfer.files.length && take(e.dataTransfer.files); };
   d.querySelector("#x").onclick = () => d.close();
   go2.onclick = async () => {
     if (!parsed) return;
@@ -600,8 +655,9 @@ function upload(acctKey) {
     const v = sel.value;
     const account = v.startsWith("new:") ? { bank: preset().bank, name: nameIn.value.trim() || preset().name } : { key: v };
     try {
-      const r = await api("/api/budget/import", { method: "POST", body: { account, rows: parsed.rows, balance: parsed.balance } });
+      const r = await api("/api/budget/import", { method: "POST", body: { account, rows: parsed.rows.map(({ date, amount, desc, note }) => ({ date, amount, desc, note })), balance: parsed.balance, quick: !!parsed.image } });
       d.close();
+      if (fromShortcut) { await api("/api/budget/screens", { method: "DELETE" }).catch(() => {}); waitingScreens = []; }
       showOk(`Imported ${r.added} new transaction${r.added === 1 ? "" : "s"}${r.skipped ? ` (${r.skipped} already here)` : ""}.`);
       month = parsed.to.slice(0, 7);
       history.replaceState(null, "", month === thisMonth() ? location.pathname : `?month=${month}`);
@@ -609,6 +665,21 @@ function upload(acctKey) {
     } catch (e) { go2.disabled = false; go2.textContent = "Import"; prev.insertAdjacentHTML("beforeend", `<p class="small" style="color:var(--danger)">${esc(e.message)}</p>`); }
   };
   if (!d.open) d.showModal();
+  if (screens && waitingScreens.length) {
+    // Pull in the screenshots the Shortcut sent (they're already deleted from your phone)
+    drop.textContent = `Fetching ${waitingScreens.length} screenshot${waitingScreens.length === 1 ? "" : "s"}…`;
+    Promise.all(waitingScreens.map(async (id) => {
+      const res = await fetch(`/api/budget/screens/${encodeURIComponent(id)}`, { credentials: "same-origin" });
+      if (!res.ok) return null;
+      const b = await res.blob();
+      return new File([b], `${id}.${(b.type.split("/")[1] || "jpg").replace("jpeg", "jpg")}`, { type: b.type || "image/jpeg" });
+    })).then((fs) => { fromShortcut = true; take(fs.filter(Boolean)); }).catch((e) => (prev.innerHTML = `<p class="small" style="color:var(--danger)">${esc(e.message)}</p>`));
+  }
+}
+
+async function checkScreens() {
+  try { waitingScreens = (await api("/api/budget/screens")).screens || []; } catch { waitingScreens = []; }
+  if (data) drawHome();
 }
 
 // Close a sheet by tapping outside it
@@ -625,4 +696,6 @@ $("dlg").addEventListener("click", (e) => { if (e.target === $("dlg")) $("dlg").
     await load();
     if (data?.monzo.connected) sync(false, true);   // quiet top-up (at most every 15 minutes)
   }
+  await checkScreens();
+  if (q.get("screens")) { history.replaceState(null, "", location.pathname); if (waitingScreens.length) upload(null, { screens: true }); }
 })();
