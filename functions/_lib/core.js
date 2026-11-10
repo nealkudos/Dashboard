@@ -2,7 +2,7 @@
 import { randomId, sha256Hex, normaliseRecovery } from "./crypto.js";
 
 export const SESSION_COOKIE = "__Host-dash_sid";
-export const SESSION_TTL = 60 * 60 * 12; // 12 hours
+export const SESSION_TTL = 60 * 60 * 24 * 30; // stay signed in for 30 days on a device
 const USER_KEY = "user";
 
 // ---------- HTTP ----------

@@ -6,7 +6,7 @@ A private dashboard for your own domain, on Cloudflare Pages (free, no card-bill
 - **Every 30 days** you're made to set a new password **and** scan a fresh authenticator QR code. Old password, old authenticator entry and old recovery codes all stop working, and every other device is signed out.
 - **8 single-use recovery codes** in case you lose your phone.
 - **`/dashboard/`** is a grid of blocks. Nothing under it — including the block code — is served to anyone not signed in.
-- Wrong attempts lock out for 15 minutes after 8 tries. Sessions last 12 hours.
+- Wrong attempts lock out for 15 minutes after 8 tries. Sessions last 30 days per device (signing out, or changing your password/authenticator, ends them).
 
 ## Deploy (about 10 minutes, all in the Cloudflare dashboard)
 
