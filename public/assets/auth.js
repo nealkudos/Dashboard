@@ -84,8 +84,8 @@ $("f-enrol").addEventListener("submit", (ev) => {
       const r = await api("setup", { step: "finish", pending: state.pending, code });
       showCodes(r.recoveryCodes);
     } else {
-      const r = await api("rotate", { challenge: state.challenge, password: $("e-pass").value, code });
-      showCodes(r.recoveryCodes);
+      const r = await api("rotate", { challenge: state.challenge, code });
+      if (r.recoveryCodes) showCodes(r.recoveryCodes); else location.replace("/dashboard/");
     }
   });
 });
@@ -138,17 +138,18 @@ for (const id of ["m-code", "e-code"]) {
 // ---------- 30-day rotation ----------
 function startRotation(r) {
   state = { mode: "rotate", challenge: r.challenge };
+  // Only the authenticator is renewed; your password stays the same
   const why = r.reason === "manual"
-    ? "Choose a new password and add a fresh authenticator entry."
-    : `It's been ${r.days} days. Choose a new password${r.newMfa ? " and re-add your authenticator" : ""}.`;
+    ? "Scan this to add a fresh authenticator entry, then type its 6-digit code."
+    : `It's been ${r.days} days — scan this to add a fresh authenticator entry, then type its 6-digit code.`;
   if (r.newMfa) {
-    $("enrol-title").textContent = r.reason === "manual" ? "Change password & authenticator" : `${r.days}-day security change`;
-    $("enrol-pass-wrap").hidden = false;
-    $("e-pass").required = true;
+    $("enrol-title").textContent = r.reason === "manual" ? "Change authenticator" : `${r.days}-day authenticator change`;
+    $("enrol-pass-wrap").hidden = true;
+    $("e-pass").required = false;
     drawQr(r.otpauth, r.secret);
     show("enrol");
     say(why + " Delete the old entry from your app afterwards.", "ok");
-    setTimeout(() => $("e-pass").focus(), 40);
+    setTimeout(() => $("e-code").focus(), 40);
   } else {
     $("rotate-pass-hint").textContent = why;
     show("rotate-pass");

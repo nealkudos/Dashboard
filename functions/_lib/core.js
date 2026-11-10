@@ -60,12 +60,12 @@ export function policy(env) {
 
 export function needsRotation(user, env, now = Date.now()) {
   const p = policy(env);
-  return now - (user.passChangedAt || 0) >= p.ms;
+  return now - (user.mfaChangedAt || user.passChangedAt || 0) >= p.ms;   // only the authenticator is renewed
 }
 
 export function daysLeft(user, env, now = Date.now()) {
   const p = policy(env);
-  return Math.max(0, Math.ceil(((user.passChangedAt || 0) + p.ms - now) / 86400000));
+  return Math.max(0, Math.ceil(((user.mfaChangedAt || user.passChangedAt || 0) + p.ms - now) / 86400000));
 }
 
 // ---------- KV records ----------

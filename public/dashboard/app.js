@@ -219,11 +219,11 @@ $("m-logout-all").onclick = () => signOut(true);
   const s = await call("/api/auth/status");
   if (!s.signedIn) return location.replace("/");
   me = { email: s.email, daysLeft: s.daysLeft, rotateDays: s.rotateDays };
-  $("rotate-note").textContent = `Next security change in ${s.daysLeft} day${s.daysLeft === 1 ? "" : "s"}`;
+  $("rotate-note").textContent = `Authenticator change in ${s.daysLeft} day${s.daysLeft === 1 ? "" : "s"}`;
 
   const f = sessionStorage.getItem("dash-flash");
   if (f) { sessionStorage.removeItem("dash-flash"); flash(f); }
-  else if (s.daysLeft <= 3) flash(`Heads up: your password and authenticator change is due in ${s.daysLeft} day${s.daysLeft === 1 ? "" : "s"}.`);
+  else if (s.daysLeft <= 3) flash(`Heads up: your authenticator change is due in ${s.daysLeft} day${s.daysLeft === 1 ? "" : "s"}.`);
 
   try { const p = (await call("/api/prefs")).prefs || {}; prefs = { layout: p.layout || {}, hidden: p.hidden || [] }; } catch {}
   await renderAll();

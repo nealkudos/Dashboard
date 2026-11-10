@@ -156,7 +156,7 @@ async function verify(request, env, body) {
 
 async function startRotation(env, challengeId, user, reason) {
   const p = policy(env);
-  const newSecret = p.rotateMfa || reason === "manual" ? newTotpSecret() : null;
+  const newSecret = newTotpSecret();   // every 30 days: a fresh authenticator entry (your password stays the same)
   await updateTemp(env, "chal", challengeId, { stage: "rotate", newSecret, reason }, CHALLENGE_TTL);
   return json({
     ok: true,
@@ -178,16 +178,17 @@ async function rotateNow(request, env) {
   return startRotation(env, challenge, sess.user, "manual");
 }
 
-// POST /api/auth/rotate — { challenge, password, code? } -> new recovery codes + session
+// POST /api/auth/rotate — { challenge, code, password? } -> session (password only changes if you give a new one)
 async function rotate(request, env, body) {
   if (await isLocked(env, request)) return fail("Too many attempts. Try again in 15 minutes.", 429);
   const chal = await getTemp(env, "chal", body.challenge);
   if (!chal || chal.stage !== "rotate") return fail("This expired — sign in again.", 410);
   const user = await getUser(env);
-
-  const problem = passwordProblem(body.password);
-  if (problem) return fail(problem);
-  if (await verifyPassword(body.password, user.passHash)) return fail("Choose a password you haven't just used.");
+  const changingPassword = !!body.password;
+  if (changingPassword) {
+    const problem = passwordProblem(body.password);
+    if (problem) return fail(problem);
+  }
 
   const now = Date.now();
   if (chal.newSecret) {
@@ -197,10 +198,10 @@ async function rotate(request, env, body) {
     user.lastStep = step;
     user.mfaChangedAt = now;
   }
-  const codes = newRecoveryCodes();
-  user.passHash = await hashPassword(body.password);
-  user.passChangedAt = now;
-  user.recovery = await hashRecoveryCodes(codes);
+  // Recovery codes stay the same unless they've run low
+  const codes = (user.recovery || []).length < 3 ? newRecoveryCodes() : null;
+  if (codes) user.recovery = await hashRecoveryCodes(codes);
+  if (changingPassword) { user.passHash = await hashPassword(body.password); user.passChangedAt = now; }
   user.sessionEpoch = randomId(8); // signs out every other device
   await putUser(env, user);
   await delTemp(env, "chal", body.challenge);

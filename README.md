@@ -3,7 +3,7 @@
 A private dashboard for your own domain, on Cloudflare Pages (free, no card-billing surprises).
 
 - **Homepage (`/`)** is the sign-in page: password, then a 6-digit code from an authenticator app.
-- **Every 30 days** you're made to set a new password **and** scan a fresh authenticator QR code. Old password, old authenticator entry and old recovery codes all stop working, and every other device is signed out.
+- **Every 30 days** you scan a fresh authenticator QR code (your password stays the same). The old authenticator entry stops working and every other device is signed out.
 - **8 single-use recovery codes** in case you lose your phone.
 - **`/dashboard/`** is a grid of blocks. Nothing under it — including the block code — is served to anyone not signed in.
 - Wrong attempts lock out for 15 minutes after 8 tries. Sessions last 30 days per device (signing out, or changing your password/authenticator, ends them).
@@ -18,7 +18,6 @@ A private dashboard for your own domain, on Cloudflare Pages (free, no card-bill
 5. **Settings → Variables and secrets:**
    - `SETUP_TOKEN` — type **Secret** — any long random string. You only need it once, for first setup.
    - `ROTATE_DAYS` = `30`
-   - `ROTATE_MFA` = `true` (set `false` if you only want the password to rotate)
 6. **Redeploy** (Deployments → ⋯ → Retry) so the bindings take effect.
 7. **Custom domain:** *Custom domains → Set up* → e.g. `dash.yourdomain.co.uk`. Cloudflare handles HTTPS.
 8. Open the site, enter the setup token, email and password, scan the QR code, save the recovery codes. Done.
