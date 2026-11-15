@@ -12,7 +12,7 @@
 import { json, fail, readJson, sameOrigin, kv } from "../../_lib/core.js";
 import { randomId } from "../../_lib/crypto.js";
 
-export const CATS = ["Flights", "Hotel", "Food & drink", "Transport", "Activities", "Shopping", "Other"];
+export const CATS = ["Package", "Flights", "Hotel", "Food & drink", "Transport", "Activities", "Shopping", "Other"];
 const INDEX = "hol:index";
 const r2 = (n) => Math.round(n * 100) / 100;
 const isDate = (s) => /^\d{4}-\d{2}-\d{2}$/.test(s || "");
@@ -95,7 +95,11 @@ export async function onRequest({ request, env, params }) {
         return json({ ok: true, holidays: hols.map((h) => withTotals(h)), categories: CATS });
       }
       if (method === "POST") {
-        const h = cleanHoliday(await readJson(request), { id: randomId(6), expenses: [], created: Date.now() });
+        const b = await readJson(request);
+        const h = cleanHoliday(b, { id: randomId(6), expenses: [], created: Date.now() });
+        // A package holiday's price (flights + hotel together) goes in as its first expense
+        const pkg = Math.round(Number(b.packagePrice) * 100) / 100;
+        if (pkg > 0) h.expenses.push(cleanExpense({ amount: pkg, cur: "home", cat: "Package", note: "Package (flights + hotel)", date: b.bookedOn || new Date().toISOString().slice(0, 10) }, { id: randomId(5), at: Date.now() }));
         await putHol(env, h);
         return json({ ok: true, holiday: withTotals(h, true) });
       }

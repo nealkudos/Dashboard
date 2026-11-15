@@ -11,8 +11,8 @@ const todayStr = () => new Date().toLocaleDateString("en-CA");
 const fmtDay = (d, opts = { weekday: "short", day: "numeric", month: "short" }) => new Date(d + "T12:00:00").toLocaleDateString("en-GB", opts);
 const days = (a, b) => Math.round((Date.parse(b) - Date.parse(a)) / 86400000);
 
-const ICON = { Flights: "✈️", Hotel: "🏨", "Food & drink": "🍽️", Transport: "🚕", Activities: "🎟️", Shopping: "🛍️", Other: "•" };
-const COLOR = { Flights: "#1f9fd1", Hotel: "#7c5cc4", "Food & drink": "#e8833a", Transport: "#3b82c4", Activities: "#2fa3a3", Shopping: "#d9a21b", Other: "#9aa0a6" };
+const ICON = { Package: "🧳", Flights: "✈️", Hotel: "🏨", "Food & drink": "🍽️", Transport: "🚕", Activities: "🎟️", Shopping: "🛍️", Other: "•" };
+const COLOR = { Package: "#4f6bed", Flights: "#1f9fd1", Hotel: "#7c5cc4", "Food & drink": "#e8833a", Transport: "#3b82c4", Activities: "#2fa3a3", Shopping: "#d9a21b", Other: "#9aa0a6" };
 const EMOJIS = ["🌴", "🏖️", "🏝️", "🏔️", "⛷️", "🏙️", "🗽", "🕌", "🐪", "🗼", "🎡", "🚢", "✈️", "🧳"];
 const CURRENCIES = ["GBP", "AED", "EUR", "USD", "THB", "INR", "JPY", "TRY", "CHF", "AUD", "CAD", "SGD", "MXN", "ZAR", "EGP", "MAD"];
 
@@ -89,7 +89,7 @@ function drawHoliday() {
   if (tripDays) {
     const elapsed = t < h.start ? 0 : t > h.end ? tripDays : days(h.start, t) + 1;
     const remaining = t < h.start ? tripDays : t > h.end ? 0 : tripDays - elapsed + 1;   // including today
-    const onTrip = h.expenses.filter((e) => e.date >= h.start && e.date <= h.end && !["Flights", "Hotel"].includes(e.cat)).reduce((s, e) => s + e.home, 0);
+    const onTrip = h.expenses.filter((e) => e.date >= h.start && e.date <= h.end && !["Package", "Flights", "Hotel"].includes(e.cat)).reduce((s, e) => s + e.home, 0);
     $("pace-card").hidden = false;
     $("pace-days").textContent = t < h.start ? `${tripDays} days` : t > h.end ? `${tripDays} days, all done` : `day ${elapsed} of ${tripDays}`;
     $("pace-avg").textContent = elapsed ? gbp(onTrip / elapsed) : "–";
@@ -174,6 +174,7 @@ function holidaySheet(existing) {
       <label class="fld"><span>To</span><input type="date" id="f-end" value="${h.end || ""}"></label>
     </div>
     <label class="fld"><span>Budget for the whole holiday (£)</span><input type="text" inputmode="decimal" id="f-budget" placeholder="e.g. 2500" value="${h.budget || ""}"></label>
+    ${existing ? "" : `<label class="fld"><span>Package price — flights + hotel (£, optional)</span><input type="text" inputmode="decimal" id="f-pkg" placeholder="e.g. 1820"></label>`}
     <div class="two-col">
       <label class="fld"><span>Local currency</span><select id="f-cur">${[...new Set([h.currency, ...CURRENCIES])].map((c) => `<option ${c === h.currency ? "selected" : ""}>${c}</option>`).join("")}</select></label>
       <label class="fld" id="f-rate-wrap"><span>£ per 1 <b id="f-rate-cur">${esc(h.currency)}</b></span>
@@ -210,6 +211,7 @@ function holidaySheet(existing) {
       start: d.querySelector("#f-start").value, end: d.querySelector("#f-end").value,
       budget: parseFloat(d.querySelector("#f-budget").value.replace(/[£,]/g, "")) || 0,
       currency: curSel.value, rate: parseFloat(rateIn.value) || null,
+      packagePrice: existing ? undefined : parseFloat((d.querySelector("#f-pkg")?.value || "").replace(/[£,]/g, "")) || 0,
     };
     if (body.currency !== "GBP" && !body.rate) return alert(`Add the exchange rate (£ per 1 ${body.currency}) — tap "Today's" to fetch it.`);
     try {
