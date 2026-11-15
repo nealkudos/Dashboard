@@ -16,6 +16,7 @@ import budget from "./budget.js";
 import football from "./football.js";
 import jobs from "./jobs.js";
 import insights from "./insights.js";
+import holiday from "./holiday.js";
 
 export default [
   welcome,
@@ -25,6 +26,7 @@ export default [
   botStatus,
   budget,
   insights,
+  holiday,
   football,
   jobs,
   links,

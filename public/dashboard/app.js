@@ -74,6 +74,7 @@ const DEFAULTS = {
   budget:   { w: 6, h: 8, autoPosition: true },
   jobs:     { w: 6, h: 4, autoPosition: true },
   insights: { x: 0, y: 0, w: 12, h: 10 },
+  holiday:  { w: 6, h: 5, autoPosition: true },
 };
 const SIZE_DEFAULT = { s: { w: 3, h: 6 }, m: { w: 6, h: 6 }, l: { w: 12, h: 6 } };
 

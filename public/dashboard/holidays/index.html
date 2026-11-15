@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#05070c" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#eef2f9" media="(prefers-color-scheme: light)">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Holidays">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/assets/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/assets/icon-180.png">
+  <link rel="stylesheet" href="/assets/app.css?v=1794738281">
+  <link rel="stylesheet" href="/dashboard/budget/budget.css?v=1794738281">
+  <link rel="stylesheet" href="/dashboard/holidays/holidays.css?v=1794738281">
+  <script src="/assets/theme.js?v=1794738281"></script>
+  <title>Holidays</title>
+</head>
+<body class="bapp">
+  <header class="top">
+    <div class="top-inner">
+      <a class="back" id="back" href="/dashboard/" aria-label="Back">‹</a>
+      <div class="brand"><div class="brand-mark">N</div><div class="brand-name" id="title">Holidays</div></div>
+      <div class="spacer"></div>
+      <button class="ghost icon theme-btn" type="button"></button>
+      <button class="ghost icon" id="edit-hol" type="button" aria-label="Holiday settings" hidden>⚙︎</button>
+    </div>
+  </header>
+
+  <main class="app">
+    <div class="note err" id="err" hidden></div>
+    <div class="note ok" id="okmsg" hidden></div>
+
+    <!-- all holidays -->
+    <section id="list-view">
+      <div id="hols"></div>
+      <button class="wide-btn" id="new-hol" type="button">＋ New holiday</button>
+    </section>
+
+    <!-- one holiday -->
+    <section id="hol-view" hidden>
+      <div class="hero hol-hero">
+        <div class="hol-top"><span class="hol-emoji" id="h-emoji"></span><div><div class="hol-name" id="h-name"></div><div class="k" id="h-sub"></div></div></div>
+        <div class="k" style="margin-top:12px">Spent</div>
+        <div class="big" id="h-spent">–</div>
+        <div class="meter hol-meter"><i id="h-bar"></i></div>
+        <div class="split">
+          <div><div class="k">Budget</div><div class="v" id="h-budget">–</div></div>
+          <div><div class="k">Left</div><div class="v" id="h-left">–</div></div>
+        </div>
+      </div>
+      <div class="card" id="pace-card">
+        <div class="card-h"><h3>Daily pace</h3><span class="muted small" id="pace-days"></span></div>
+        <div class="split two">
+          <div><div class="k">Spending a day</div><div class="v" id="pace-avg">–</div></div>
+          <div><div class="k">You can spend a day</div><div class="v" id="pace-allow">–</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-h"><h3>By category</h3></div>
+        <div id="h-cats"></div>
+      </div>
+      <div class="card">
+        <div class="card-h"><h3>Expenses</h3><span class="muted small" id="h-count"></span></div>
+        <div id="h-exp"></div>
+      </div>
+    </section>
+  </main>
+
+  <button class="fab" id="add" type="button" aria-label="Add expense" hidden>＋</button>
+  <dialog id="dlg" class="sheet"></dialog>
+  <script src="/dashboard/holidays/holidays.js?v=1794738281" type="module"></script>
+</body>
+</html>
