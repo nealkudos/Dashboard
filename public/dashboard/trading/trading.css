@@ -87,3 +87,11 @@ svg { display: block; width: 100%; height: auto; }
 .flash-up { color: var(--ok) !important; } .flash-down { color: var(--danger) !important; }
 #liveAge { margin-top: 8px; }
 @media (max-width: 420px) { .seg button { padding: 6px 8px; font-size: 12.5px; } }
+
+/* demo / real-money switch */
+.acct-switch { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 4px; margin: 0 0 12px; border-radius: 14px; background: var(--surface-2); border: 1px solid var(--line); }
+.acct-switch button { background: transparent; color: var(--muted); font-weight: 650; font-size: 14px; padding: 10px; border-radius: 10px; }
+.acct-switch button.on { background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
+.acct-switch button:disabled { opacity: .4; }
+body.real-money .acct-switch button.on { background: linear-gradient(180deg, #b7791f, #8a5a12); color: #fff; }
+body.real-money .trd-head { box-shadow: inset 3px 0 0 #d69e2e; padding-left: 10px; border-radius: 4px; }

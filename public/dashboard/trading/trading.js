@@ -1,5 +1,5 @@
 // Trading page: everything from the signal-copier bot, via /api/trading (signed-in only).
-import { fetchTrading, fetchLive, esc, money, cls, when, fmtT, inPeriod, summary, curveSVG } from "./lib.js";
+import { fetchTrading, fetchLive, esc, money, cls, when, fmtT, inPeriod, summary, curveSVG, account, setAccount } from "./lib.js";
 
 const $ = (id) => document.getElementById(id);
 let days = 7, data = null, filter = "All", shown = 15;
@@ -16,6 +16,31 @@ document.querySelectorAll("#period button").forEach((b) => {
   };
 });
 
+// ---------- Demo / real-money switch ----------
+let acct = account;
+function drawSwitch() {
+  document.querySelectorAll("#acctSwitch button").forEach((b) => b.classList.toggle("on", b.dataset.a === acct));
+  document.body.classList.toggle("real-money", acct === "live");
+}
+document.querySelectorAll("#acctSwitch button").forEach((b) => (b.onclick = () => {
+  if (b.dataset.a === acct) return;
+  acct = b.dataset.a; setAccount(acct); drawSwitch();
+  data = null; lastOk = 0; lastBid = null; shown = 15;
+  ["tiles", "curve", "daily", "sources", "trades", "liveOpen", "livePend"].forEach((id) => { const el = $(id); if (el) el.innerHTML = `<div class="empty">Loading…</div>`; });
+  $("acct").textContent = "Loading…"; $("pills").innerHTML = "";
+  closeStream(); openStream(); liveTick(); load();
+}));
+drawSwitch();
+// Hide the switch if the bot has no real-money account set up
+fetch("/api/trading-accounts", { credentials: "same-origin" }).then((r) => r.json()).then((b) => {
+  const hasLive = !!b?.data?.live;
+  if (!hasLive) {
+    $("acctSwitch").querySelector('[data-a="live"]').disabled = true;
+    $("acctSwitch").querySelector('[data-a="live"]').title = "No real-money account connected to the bot yet";
+    if (acct === "live") { acct = "demo"; setAccount("demo"); drawSwitch(); closeStream(); openStream(); load(); }
+  }
+}).catch(() => {});
+
 async function load() {
   try {
     data = await fetchTrading(days === 1 ? 2 : days === -1 ? 3 : days);
@@ -30,6 +55,7 @@ async function load() {
 function render() {
   const a = data.account, cur = a.currency || "USD";
   $("acct").textContent = `${a.broker || ""} #${a.login || ""} · ${a.demo ? "Demo account" : "REAL account"}`;
+  if ((data.account_kind || "demo") !== acct) return;      // a reply for the other account arrived late
   const pills = [a.dry_run ? `<span class="pill">🧪 Dry run</span>` : `<span class="pill live">● Live trading</span>`];
   if (a.paused) pills.push(`<span class="pill warn">⏸ Paused</span>`);
   if (a.loss_lock) pills.push(`<span class="pill warn">🛑 Daily loss limit hit</span>`);
@@ -183,7 +209,7 @@ function gotLive(d) {
 // If the stream can't connect, fall back to asking every 5 seconds.
 function openStream() {
   if (!window.EventSource || es) return;
-  es = new EventSource("/api/trading-stream");
+  es = new EventSource(acct === "live" ? "/api/trading-stream?account=live" : "/api/trading-stream");
   es.onmessage = (ev) => {
     try { gotLive(JSON.parse(ev.data)); streaming = true; } catch {}
   };

@@ -1,7 +1,13 @@
 // Shared by the Trading page and the Trading summary block.
 
-export async function fetchTrading(days) {
-  const res = await fetch(`/api/trading?days=${days}`, { credentials: "same-origin" });
+// Which account the Trading page shows: "demo" or "live" (real money). Remembered on this device.
+export let account = "demo";
+try { account = localStorage.getItem("trading-account") === "live" ? "live" : "demo"; } catch {}
+export function setAccount(a) { account = a === "live" ? "live" : "demo"; try { localStorage.setItem("trading-account", account); } catch {} }
+const q = () => (account === "live" ? "account=live" : "");
+
+export async function fetchTrading(days, which = account) {
+  const res = await fetch(`/api/trading?days=${days}${which === "live" ? "&account=live" : ""}`, { credentials: "same-origin" });
   if (res.status === 401) { location.replace("/"); throw new Error("Signed out"); }
   const body = await res.json().catch(() => ({}));
   if (!res.ok || body.ok === false) throw new Error(body.error || `Error ${res.status}`);
@@ -9,7 +15,7 @@ export async function fetchTrading(days) {
 }
 
 export async function fetchLive() {
-  const res = await fetch("/api/trading-live", { credentials: "same-origin" });
+  const res = await fetch(`/api/trading-live${q() ? "?" + q() : ""}`, { credentials: "same-origin" });
   if (res.status === 401) { location.replace("/"); throw new Error("Signed out"); }
   const body = await res.json().catch(() => ({}));
   if (!res.ok || body.ok === false) throw new Error(body.error || `Error ${res.status}`);

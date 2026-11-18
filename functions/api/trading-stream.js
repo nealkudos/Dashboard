@@ -9,7 +9,8 @@ export async function onRequestGet({ env, request }) {
   }
   let up;
   try {
-    up = await fetch(base + "/api/stream", {
+    const live = new URL(request.url).searchParams.get("account") === "live";
+    up = await fetch(base + (live ? "/api/stream?account=live" : "/api/stream"), {
       headers: { authorization: "Basic " + btoa("dashboard:" + env.COPIER_PASSWORD), accept: "text/event-stream" },
       signal: request.signal,
     });

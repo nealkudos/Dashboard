@@ -24,7 +24,7 @@ export default {
 
     ctx.every(60000, async () => {
       try {
-        const d = await fetchTrading(7);
+        const d = await fetchTrading(7, "demo");
         const closed = inPeriod(d.closed, 7), s = summary(closed);
         const open = d.open.reduce((x, t) => x + t.pnl, 0);
         const warn = [d.account.loss_lock && "Daily loss limit hit", d.account.paused && "Bot paused",
