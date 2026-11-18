@@ -18,7 +18,7 @@ document.querySelectorAll("#period button").forEach((b) => {
 
 async function load() {
   try {
-    data = await fetchTrading(days === 1 ? 2 : days);
+    data = await fetchTrading(days === 1 ? 2 : days === -1 ? 3 : days);
     $("err").hidden = true;
     render();
   } catch (e) {
@@ -39,7 +39,7 @@ function render() {
   const closed = inPeriod(data.closed, days);
   const s = summary(closed);
   const openPnl = data.open.reduce((x, t) => x + t.pnl, 0);
-  const label = days === 1 ? "today" : `last ${days} days`;
+  const label = days === 1 ? "today" : days === -1 ? "yesterday" : `last ${days} days`;
   $("tiles").innerHTML = [
     ["Balance", money(a.balance, false), cur],
     ["Equity", money(a.equity, false), `open P/L <span class="${cls(openPnl)}">${money(openPnl)}</span>`],

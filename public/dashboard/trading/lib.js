@@ -26,12 +26,14 @@ export const fmtT = (s) => {
   return d ? d.toLocaleString("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "";
 };
 
-/** Closed trades inside the period (days=1 means today, local time). */
+/** Closed trades inside the period (days=1 means today, days=-1 yesterday, local time). */
 export function inPeriod(closed, days) {
   const now = new Date();
+  const yest = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1).toDateString();
   return closed.filter((t) => {
     const d = when(t.closed);
     if (!d) return false;
+    if (days === -1) return d.toDateString() === yest;
     return days === 1 ? d.toDateString() === now.toDateString() : now - d <= days * 864e5;
   });
 }

@@ -86,3 +86,4 @@ svg { display: block; width: 100%; height: auto; }
 .pend { font-size: 12px; color: var(--muted); padding: 8px 0 0; display: flex; flex-wrap: wrap; gap: 6px 14px; }
 .flash-up { color: var(--ok) !important; } .flash-down { color: var(--danger) !important; }
 #liveAge { margin-top: 8px; }
+@media (max-width: 420px) { .seg button { padding: 6px 8px; font-size: 12.5px; } }
