@@ -38,12 +38,12 @@ export default {
           ${curveSVG(closed, { W: 360, H: 90, labels: false })}
           <div class="foot">
             <span class="muted">Balance ${money(d.account.balance, false)} ${d.account.currency || ""}${d.account.demo ? " · demo" : ""}</span>
-            <a href="/dashboard/trading/">Open trading →</a>
+            <a href="/dashboard/trading/hud/">◎ HUD</a> · <a href="/dashboard/trading/">Open trading →</a>
           </div>
           ${warn.length ? `<div class="warn">⚠️ ${warn.join(" · ")}</div>` : ""}`;
       } catch (e) {
         box.innerHTML = `<div class="muted small">⚠️ ${e.message}</div>
-          <div class="foot"><span></span><a href="/dashboard/trading/">Open trading →</a></div>`;
+          <div class="foot"><span></span><a href="/dashboard/trading/hud/">◎ HUD</a> · <a href="/dashboard/trading/">Open trading →</a></div>`;
       }
     });
   },

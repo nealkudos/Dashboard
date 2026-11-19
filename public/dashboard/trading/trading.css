@@ -95,3 +95,5 @@ svg { display: block; width: 100%; height: auto; }
 .acct-switch button:disabled { opacity: .4; }
 body.real-money .acct-switch button.on { background: linear-gradient(180deg, #b7791f, #8a5a12); color: #fff; }
 body.real-money .trd-head { box-shadow: inset 3px 0 0 #d69e2e; padding-left: 10px; border-radius: 4px; }
+
+.hud-link { text-decoration: none; font-weight: 700; letter-spacing: .12em; padding: 6px 12px; border-radius: 10px; color: #0aa6c2; border: 1px solid rgba(10,166,194,.35); margin-right: 8px; }

@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#02060b">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="icon" href="/assets/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/dashboard/trading/hud/hud.css">
+  <title>Trade HUD</title>
+</head>
+<body>
+  <div class="grid-bg" aria-hidden="true"></div>
+  <div class="scan" aria-hidden="true"></div>
+
+  <div class="boot" id="boot" aria-hidden="true">
+    <div class="boot-ring"></div>
+    <pre id="bootLog"></pre>
+  </div>
+
+  <header class="bar">
+    <a class="back" href="/dashboard/trading/" aria-label="Back to trading">‹</a>
+    <div class="title"><span class="blink" id="linkDot"></span> TRADE OPS <span class="dim">// GOLD</span></div>
+    <div class="acct" id="acctSwitch" role="tablist" aria-label="Account">
+      <button type="button" data-a="demo">DEMO</button><button type="button" data-a="live">REAL £</button>
+    </div>
+    <div class="clocks"><span id="clkUk">--:--</span><small>UK</small><span id="clkLocal">--:--</span><small>LOCAL</small></div>
+  </header>
+
+  <main class="hud">
+    <section class="panel left">
+      <h2>ACCOUNT</h2>
+      <div class="stat"><label>EQUITY</label><b id="equity">—</b></div>
+      <div class="stat"><label>BALANCE</label><b id="balance">—</b></div>
+      <div class="stat"><label>OPEN P/L</label><b id="openPl">—</b></div>
+      <div class="stat"><label>TODAY</label><b id="today">—</b><small id="todaySub"></small></div>
+      <h2>SESSION</h2>
+      <div class="stat"><label>MARKET</label><b id="session">—</b></div>
+      <div class="stat"><label>SPREAD</label><b id="spread">—</b></div>
+      <div class="stat"><label>LINK</label><b id="linkTxt">CONNECTING</b></div>
+    </section>
+
+    <section class="core">
+      <svg class="reactor" viewBox="0 0 400 400" aria-hidden="true">
+        <defs>
+          <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#5ff" stop-opacity=".35"/>
+            <stop offset="60%" stop-color="#0af" stop-opacity=".06"/>
+            <stop offset="100%" stop-color="#0af" stop-opacity="0"/>
+          </radialGradient>
+        </defs>
+        <circle cx="200" cy="200" r="190" fill="url(#glow)"/>
+        <g class="ring r1"><circle cx="200" cy="200" r="182" class="dash1"/></g>
+        <g class="ring r2" id="ticks"></g>
+        <g class="ring r3"><circle cx="200" cy="200" r="140" class="dash2"/></g>
+        <g class="ring r4"><circle cx="200" cy="200" r="122" class="dash3"/></g>
+        <circle cx="200" cy="200" r="160" class="track"/>
+        <circle cx="200" cy="200" r="160" class="plArc" id="plArc" transform="rotate(-90 200 200)"/>
+        <circle cx="200" cy="200" r="104" class="inner"/>
+      </svg>
+      <div class="readout">
+        <div class="sym">XAU/USD</div>
+        <div class="px" id="px">----.--</div>
+        <div class="move" id="move">&nbsp;</div>
+        <div class="count" id="count">0 OPEN</div>
+      </div>
+    </section>
+
+    <section class="panel right">
+      <h2>POSITIONS <span class="dim" id="posCount"></span></h2>
+      <div id="positions" class="positions"><div class="empty">NO OPEN POSITIONS</div></div>
+      <h2>PENDING</h2>
+      <div id="pending" class="pending"><div class="empty">NONE</div></div>
+    </section>
+
+    <section class="panel trace">
+      <h2>PRICE TRACE <span class="dim">LIVE TICKS</span></h2>
+      <canvas id="chart"></canvas>
+    </section>
+
+    <section class="panel log">
+      <h2>EVENT LOG</h2>
+      <ol id="log"></ol>
+    </section>
+  </main>
+
+  <script type="module" src="/dashboard/trading/hud/hud.js"></script>
+</body>
+</html>
