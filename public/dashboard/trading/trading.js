@@ -70,7 +70,10 @@ function render() {
     ["Balance", money(a.balance, false), cur],
     ["Equity", money(a.equity, false), `open P/L <span class="${cls(openPnl)}">${money(openPnl)}</span>`],
     ["Profit " + label, `<span class="${cls(s.net)}">${money(s.net)}</span>`, pl(s.trades, "trade") + " closed"],
-    ["Signals won", s.rate === null ? "–" : s.rate + "%", `${s.won} won · ${s.lost} lost · ${s.even} even`],
+    (() => {
+      const w = closed.filter((t) => t.pnl > 0.5).length, l = closed.filter((t) => t.pnl < -0.5).length;
+      return ["Trades won", w + l ? Math.round((100 * w) / (w + l)) + "%" : "–", `${w} won · ${l} lost · ${closed.length - w - l} even`];
+    })(),
   ].map(([k, v, x]) => `<div class="tile"><div class="k">${k}</div><div class="v">${v}</div><div class="s">${x}</div></div>`).join("");
 
   $("curveTitle").textContent = "Profit over time (" + label + ")";
@@ -98,18 +101,23 @@ function drawDaily(closed) {
 }
 
 function drawSources(closed) {
+  // Counted per individual trade (each TP / entry is one trade); signals shown alongside
   const by = {};
-  closed.forEach((t) => { const s = (by[t.source] ||= { n: 0, sig: {}, net: 0 }); s.n++; s.net += t.pnl; s.sig[t.key] = (s.sig[t.key] || 0) + t.pnl; });
-  const rows = Object.entries(by).map(([name, s]) => {
-    const v = Object.values(s.sig), w = v.filter((x) => x > 0.5).length, l = v.filter((x) => x < -0.5).length;
-    return { name, sigs: v.length, w, l, e: v.length - w - l, wr: w + l ? w / (w + l) : null, net: s.net, avg: s.net / v.length };
-  }).sort((a, b) => b.net - a.net);
+  closed.forEach((t) => {
+    const s = (by[t.source] ||= { n: 0, w: 0, l: 0, net: 0, sig: new Set() });
+    s.n++; s.net += t.pnl; s.sig.add(t.key);
+    if (t.pnl > 0.5) s.w++; else if (t.pnl < -0.5) s.l++;
+  });
+  const rows = Object.entries(by).map(([name, s]) => ({
+    name, n: s.n, sigs: s.sig.size, w: s.w, l: s.l, e: s.n - s.w - s.l,
+    wr: s.w + s.l ? s.w / (s.w + s.l) : null, net: s.net, avg: s.net / s.n,
+  })).sort((a, b) => b.net - a.net);
   if (!rows.length) { $("sources").innerHTML = `<div class="empty">No closed trades in this period.</div>`; return; }
   $("sources").innerHTML = rows.map((r) => `<div class="src">
       <div class="nm">${esc(r.name)}</div><div class="nt ${cls(r.net)}">${money(r.net)}</div>
-      <div class="dt">${pl(r.sigs, "signal")} · ${r.w} won · ${r.l} lost${r.e ? ` · ${r.e} even` : ""}
+      <div class="dt">${pl(r.n, "trade")} · ${r.w} won · ${r.l} lost${r.e ? ` · ${r.e} even` : ""} <span class="muted">(${pl(r.sigs, "signal")})</span>
         ${r.wr === null ? "" : `<span>${Math.round(r.wr * 100)}% <span class="bar"><i style="width:${Math.round(r.wr * 100)}%"></i></span></span>`}</div>
-      <div class="pa">${money(r.avg)} / signal</div></div>`).join("");
+      <div class="pa">${money(r.avg)} / trade</div></div>`).join("");
 }
 
 function drawTrades(closed) {
