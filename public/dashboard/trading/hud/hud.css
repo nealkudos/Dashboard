@@ -10,7 +10,7 @@
   --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 }
 * { box-sizing: border-box; }
-html, body { margin: 0; height: 100%; background: var(--bg); color: var(--c); font: 13px/1.35 var(--mono); letter-spacing: .04em; overflow-x: hidden; }
+html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--c); font: 13px/1.35 var(--mono); letter-spacing: .04em; overflow-x: hidden; }
 body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
 .dim { color: var(--dim); }
 small { color: var(--dim); font-size: 10px; }
@@ -40,7 +40,7 @@ small { color: var(--dim); font-size: 10px; }
 .blink.on { background: var(--up); box-shadow: 0 0 8px var(--up); animation: pulse 1.6s ease-in-out infinite; }
 .blink.bad { background: var(--down); box-shadow: 0 0 8px var(--down); }
 .acct { display: flex; border: 1px solid var(--line); }
-.acct button { background: none; border: 0; color: var(--dim); font: inherit; padding: 6px 10px; letter-spacing: .15em; cursor: pointer; }
+.acct button { background: none; border: 0; color: var(--dim); font: inherit; padding: 6px 10px; white-space: nowrap; letter-spacing: .15em; cursor: pointer; }
 .acct button.on { color: var(--bg); background: var(--c); box-shadow: 0 0 12px rgba(79,243,255,.6); }
 .acct button:disabled { opacity: .35; cursor: default; }
 body.real .acct button.on { background: var(--amber); box-shadow: 0 0 12px rgba(255,194,77,.6); }
@@ -57,6 +57,11 @@ body.real .acct button.on { background: var(--amber); box-shadow: 0 0 12px rgba(
 @media (max-width: 900px) {
   .hud { grid-template-columns: 1fr; grid-template-areas: "core" "left" "right" "trace" "log"; }
   .clocks { display: none; }
+  .title { letter-spacing: .15em; font-size: 12px; }
+  .title .dim { display: none; }
+  .bar { gap: 8px; padding: 10px 12px; }
+  .hud { padding: 10px 10px 24px; }
+  .core { min-height: 300px; }
 }
 
 .panel { position: relative; border: 1px solid var(--line); background: linear-gradient(180deg, rgba(10,40,55,.35), rgba(2,8,14,.6)); padding: 12px 14px; backdrop-filter: blur(2px); }
