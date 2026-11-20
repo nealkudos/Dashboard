@@ -1,7 +1,7 @@
 // Runs before every request: guards /dashboard and private APIs, adds security headers.
 import { currentSession, fail } from "./_lib/core.js";
 
-const PUBLIC_API = /^\/api\/(auth|shortcut)\//;   // shortcut checks its own key
+const PUBLIC_API = /^\/api\/(auth|shortcut|cron)\//;   // shortcut checks its own key; cron only does once-a-day reminders
 
 const SECURITY_HEADERS = {
   "content-security-policy":

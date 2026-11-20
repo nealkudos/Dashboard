@@ -160,7 +160,9 @@ function renderToday() {
       <p style="margin-top:6px">${esc(plan.note)}</p>
       ${fresh && fresh.week > 1 ? `<p style="margin-top:10px"><b style="color:var(--text)">${fresh.icon} Why ${esc(fresh.name.toLowerCase())}:</b> ${esc(fresh.why)}</p>` : ""}
       ${wk >= 5 ? `<button class="link" id="to-wo" type="button" style="margin-top:6px">Open today's workout →</button>` : ""}
-    </div>`;
+    </div>
+    <div class="card" id="remind"></div>`;
+  renderReminder($("remind"));
 
   $("prev").onclick = () => { viewDate = addDays(viewDate, -1); renderToday(); };
   $("next").onclick = () => { viewDate = addDays(viewDate, 1); renderToday(); };
@@ -364,6 +366,71 @@ function renderPlan() {
       Aim for 0.5–1 kg a week on the trend line; ignore single weigh-ins, they jump around with water and salt.</p></div>`;
 }
 
+// ---------- 9:30pm reminder (Web Push) ----------
+const PUSH = "/api/lean/push";
+const tz = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
+const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+const standalone = window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+const pushable = "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+const unb64u = (s) => Uint8Array.from(atob(s.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((s.length + 3) % 4)), (c) => c.charCodeAt(0));
+
+async function currentSub() {
+  if (!pushable) return null;
+  const reg = await navigator.serviceWorker.getRegistration("/");
+  return reg ? reg.pushManager.getSubscription() : null;
+}
+
+async function renderReminder(el) {
+  if (!el) return;
+  const head = `<div class="card-h"><h3>🔔 End-of-day reminder</h3><span class="muted small">9:30pm</span></div>`;
+  if (!pushable) {
+    el.innerHTML = head + (isIOS && !standalone
+      ? `<p class="muted small" style="margin:0">iPhones only allow notifications from Home Screen apps. In Safari tap <b>Share → Add to Home Screen</b>, open <b>Dashboard</b> from your Home Screen, sign in, then come back here and turn this on.</p>`
+      : `<p class="muted small" style="margin:0">This browser can't show notifications.</p>`);
+    return;
+  }
+  if (Notification.permission === "denied") {
+    el.innerHTML = head + `<p class="muted small" style="margin:0">Notifications are blocked. Turn them on in your iPhone's <b>Settings → Notifications → Dashboard</b>, then reopen this page.</p>`;
+    return;
+  }
+  let sub = null, st = null;
+  try { sub = await currentSub(); st = await api(PUSH + (sub ? `?endpoint=${encodeURIComponent(sub.endpoint)}` : "")); }
+  catch (e) { el.innerHTML = head + `<p class="muted small" style="margin:0">${esc(e.message)}</p>`; return; }
+  if (sub && st.on) {
+    el.innerHTML = head + `<p class="muted small" style="margin:0">On for this device. Around 9:30pm (${esc(st.tz.replace(/_/g, " "))} time) you'll get a nudge — only if today isn't filled in yet.</p>
+      <div style="display:flex;gap:8px;margin-top:10px"><button class="ghost" id="r-test" type="button">Send a test</button><button class="ghost" id="r-off" type="button">Turn off</button></div>`;
+    $("r-test").onclick = async () => {
+      try { const r = await api(PUSH, { method: "POST", body: JSON.stringify({ test: true, tz: tz() }) }); showOk(r.sent ? "Test sent — it should pop up in a few seconds." : "Couldn't reach your phone — try turning reminders off and on again."); }
+      catch (e) { showErr(e.message); }
+    };
+    $("r-off").onclick = async () => {
+      try { await api(PUSH, { method: "DELETE", body: JSON.stringify({ endpoint: sub.endpoint }) }); await sub.unsubscribe(); showOk("Reminders turned off."); }
+      catch (e) { showErr(e.message); }
+      renderReminder(el);
+    };
+    return;
+  }
+  el.innerHTML = head + `<p class="muted small" style="margin:0">Get a notification at 9:30pm if you haven't checked in yet. Skipped on days you've already done everything.</p>
+    <button id="r-on" type="button" style="margin-top:10px">Turn on reminders</button>`;
+  $("r-on").onclick = async () => {
+    try {
+      const perm = await Notification.requestPermission();   // must come first, straight from the tap
+      if (perm !== "granted") { renderReminder(el); return; }
+      const reg = await navigator.serviceWorker.register("/sw.js", { scope: "/" });
+      await navigator.serviceWorker.ready;
+      const s = (await reg.pushManager.getSubscription()) || (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: unb64u(st.publicKey) }));
+      await api(PUSH, { method: "POST", body: JSON.stringify({ subscription: s.toJSON(), tz: tz() }) });
+      showOk("Reminders on — see you at 9:30pm.");
+    } catch (e) { showErr("Couldn't turn on reminders: " + e.message); }
+    renderReminder(el);
+  };
+}
+
+// Keep the reminder in step with where you are (UK or Dubai) whenever you open the page.
+async function syncTz() {
+  try { if (Notification.permission === "granted" && (await currentSub())) await api(PUSH, { method: "POST", body: JSON.stringify({ tz: tz() }) }); } catch {}
+}
+
 // ---------- start ----------
 (async () => {
   try {
@@ -373,6 +440,7 @@ function renderPlan() {
   const qs = new URLSearchParams(location.search);
   if (qs.get("tab")) tab = qs.get("tab");
   if (doc?.profile) started(); else renderWelcome();
+  if (pushable) syncTz();
 })();
 // Coming back to the page on a new day: jump to today.
 let lastDay = today();

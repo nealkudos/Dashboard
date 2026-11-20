@@ -1,0 +1,14 @@
+# Nudges the dashboard to send the Lean 12 end-of-day reminder.
+# The site decides whether it's actually 9:30pm where you are (UK in winter or summer, or Dubai) and whether
+# today's check-in is already done — these runs just give it the chance. Six short runs a day.
+name: Lean 12 reminder
+on:
+  schedule:
+    - cron: "35,55 17,20,21 * * *"   # UTC: 21:35 Dubai · 21:35 UK summer · 21:35 UK winter (plus a 20-min backup)
+  workflow_dispatch:
+jobs:
+  remind:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - run: curl -fsS --max-time 30 https://nealchauhan.co.uk/api/cron/lean
