@@ -17,10 +17,12 @@ import football from "./football.js";
 import jobs from "./jobs.js";
 import insights from "./insights.js";
 import holiday from "./holiday.js";
+import lean from "./lean.js";
 
 export default [
   welcome,
   calendar,
+  lean,
   trading,
   scanner,
   botStatus,
